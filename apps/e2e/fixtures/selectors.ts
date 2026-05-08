@@ -27,7 +27,7 @@ export const SELECTORS = {
   muteButton: 'media-mute-button, .media-button--mute',
   fullscreenButton: 'media-fullscreen-button, .media-button--fullscreen',
   pipButton: 'media-pip-button, .media-button--pip',
-  captionsButton: 'media-captions-button, .media-button--captions',
+  captionsButton: 'media-captions-menu-trigger, media-captions-button, .media-button--captions',
   playbackRateButton: 'media-playback-rate-button, .media-button--playback-rate',
 
   // Sliders
