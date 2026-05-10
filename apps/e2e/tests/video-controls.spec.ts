@@ -26,7 +26,7 @@ for (const { name, path, media, skipBrowsers } of ALL_VIDEO_PAGES as readonly Pa
       await expect(player.muteButton).toHaveAttribute(DATA_ATTRS.volumeLevel);
       await expect(player.fullscreenButton).toHaveAttribute(DATA_ATTRS.availability);
       await expect(player.pipButton).toHaveAttribute(DATA_ATTRS.availability);
-      await expect(player.captionsButton).toHaveAttribute(DATA_ATTRS.availability);
+      await expect(player.settingsButton).toBeAttached();
       await expect(player.duration).not.toHaveText('');
       await player.showControls();
       await expect(player.controls).toBeAttached();
@@ -91,15 +91,13 @@ for (const { name, path, media, skipBrowsers } of ALL_VIDEO_PAGES as readonly Pa
 
     // --- Playback Rate ---
 
-    test('playback rate button cycles rates', async () => {
-      const rateBtn = player.playbackRateButton;
-      const initialRate = await rateBtn.getAttribute(DATA_ATTRS.rate);
+    test('settings menu changes playback rate', async () => {
+      const initialRate = await player.getPlaybackRate();
 
-      await rateBtn.click();
-      await player.page.waitForTimeout(200);
+      await player.openPlaybackRateSettings();
+      await player.page.locator('[role="menuitemradio"][aria-checked="false"]').first().click();
 
-      const newRate = await rateBtn.getAttribute(DATA_ATTRS.rate);
-      expect(newRate).not.toBe(initialRate);
+      await expect.poll(() => player.getPlaybackRate()).not.toBe(initialRate);
     });
 
     // --- Poster ---

@@ -21,8 +21,7 @@ import {
   type PositioningBoundary,
   resolveOffsets,
   resolvePositioningBoundary,
-  syncMenuViewRoot,
-  syncMenuViewTransition,
+  syncMenuViewport,
   type UIFocusEvent,
   type UIKeyboardEvent,
 } from '@videojs/core/dom';
@@ -198,6 +197,7 @@ export class MenuElement extends MediaElement {
     const state = this.#core.getState();
 
     if (isSubmenu && parentCtx) {
+      this.#cleanupRootTrigger();
       this.#updateAsSubmenu(parentCtx);
     } else {
       this.#updateAsRoot(state);
@@ -243,7 +243,7 @@ export class MenuElement extends MediaElement {
       return;
     }
 
-    syncMenuViewRoot(this, this.#navState.stack.length > 0);
+    syncMenuViewport(this, { activeViewId: this.#navState.stack[this.#navState.stack.length - 1]?.menuId ?? null });
 
     const positionOptions = getRootPositionOptions(state.side, state.align);
     if (!positionOptions) return;
@@ -283,12 +283,16 @@ export class MenuElement extends MediaElement {
     const transitionState = this.#menuViewTransition.input.current;
 
     applyElementProps(this, {
-      ...getMenuViewTransitionAttrs(transitionState),
+      ...getMenuViewTransitionAttrs(transitionState, { id: this.id }),
       role: 'menu',
       tabIndex: -1,
       'data-submenu': '',
     });
-    syncMenuViewTransition(parentCtx.menu.contentElement, this, transitionState);
+    syncMenuViewport(parentCtx.menu.contentElement, {
+      activeViewId: activeSubMenuId,
+      view: this,
+      viewState: transitionState,
+    });
   }
 
   #handleContentKeyDown = (event: UIKeyboardEvent): void => {
@@ -323,14 +327,15 @@ export class MenuElement extends MediaElement {
   };
 
   #handleContentFocusOut = (event: UIFocusEvent): void => {
+    if (!this.#parentCtx.value && this.#menu?.navigationInput.current.stack.length) return;
+
     this.#menu?.contentProps.onFocusOut(event);
   };
 
   #syncTrigger(triggerElement: HTMLElement | null): void {
     if (triggerElement === this.#currentTrigger) return;
 
-    this.#position.cleanup();
-    this.#cleanupTrigger();
+    this.#cleanupRootTrigger();
     this.#currentTrigger = triggerElement;
     this.#menu?.setTriggerElement(triggerElement);
 
@@ -338,6 +343,13 @@ export class MenuElement extends MediaElement {
       this.#triggerAbort = new AbortController();
       applyElementProps(triggerElement, this.#menu.triggerProps, { signal: this.#triggerAbort.signal });
     }
+  }
+
+  #cleanupRootTrigger(): void {
+    this.#position.cleanup();
+    this.#cleanupTrigger();
+    this.#currentTrigger = null;
+    this.#menu?.setTriggerElement(null);
   }
 
   #cleanupTrigger(): void {

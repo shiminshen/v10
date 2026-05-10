@@ -4,68 +4,97 @@ import type { TransitionState } from '../../core/ui/transition';
 
 export interface TransitionApi {
   state: State<TransitionState>;
-  open(): Promise<void>;
+  setElement(el: HTMLElement | null): void;
+  open(el?: HTMLElement | null): Promise<void>;
   close(el: HTMLElement | null): Promise<void>;
   cancel(): void;
   destroy(): void;
 }
 
+export interface WaitForAnimationsOptions {
+  includeCSSTransitions?: boolean;
+}
+
 /**
  * Manages open/close transition lifecycle via `createState`.
  *
- * **Open:** patches `{ active: true, status: 'starting' }`, then after a
- * double-RAF patches `{ status: 'idle' }` so the browser paints the
- * initial ("from") state before transitioning.
+ * **Open:** patches `{ active: true, status: 'starting', transitioning: true }`, then
+ * after a double-RAF patches `{ status: 'idle' }` so the browser paints the
+ * initial ("from") state before transitioning. `transitioning` stays true
+ * until the element's animations settle.
  *
- * **Close:** patches `{ status: 'ending' }` (keeping `active: true` so the
- * element stays mounted), then after a double-RAF waits for
- * `getAnimations()` to settle before patching `{ active: false, status: 'idle' }`.
+ * **Close:** patches `{ status: 'ending', transitioning: true }` (keeping
+ * `active: true` so the element stays mounted), then after a double-RAF waits
+ * for `getAnimations()` to settle before patching `{ active: false, status: 'idle' }`.
  */
 export function createTransition(): TransitionApi {
-  const state = createState<TransitionState>({ active: false, status: 'idle' });
+  const state = createState<TransitionState>({ active: false, status: 'idle', transitioning: false });
 
   let destroyed = false;
+  let element: HTMLElement | null = null;
+  let transitionId = 0;
   let rafId1 = 0;
   let rafId2 = 0;
 
-  function open(): Promise<void> {
+  function setElement(el: HTMLElement | null): void {
+    element = el;
+  }
+
+  function cancelFrames(): void {
     cancelAnimationFrame(rafId1);
     cancelAnimationFrame(rafId2);
     rafId1 = 0;
     rafId2 = 0;
+  }
 
-    state.patch({ active: true, status: 'starting' });
+  function open(el?: HTMLElement | null): Promise<void> {
+    transitionId++;
+    const currentTransitionId = transitionId;
+    cancelFrames();
+
+    if (el !== undefined) {
+      element = el;
+    }
+
+    state.patch({ active: true, status: 'starting', transitioning: true });
 
     return new Promise<void>((resolve) => {
       rafId1 = requestAnimationFrame(() => {
         rafId1 = 0;
         rafId2 = requestAnimationFrame(() => {
           rafId2 = 0;
-          if (destroyed || !state.current.active) return resolve();
+          if (destroyed || currentTransitionId !== transitionId || !state.current.active) return resolve();
           state.patch({ status: 'idle' });
-          resolve();
+          waitForAnimations(element).finally(() => {
+            if (destroyed || currentTransitionId !== transitionId || !state.current.active) return resolve();
+            state.patch({ transitioning: false });
+            resolve();
+          });
         });
       });
     });
   }
 
   function close(el: HTMLElement | null): Promise<void> {
-    cancelAnimationFrame(rafId1);
-    cancelAnimationFrame(rafId2);
-    rafId1 = 0;
-    rafId2 = 0;
+    transitionId++;
+    const currentTransitionId = transitionId;
+    cancelFrames();
 
-    state.patch({ status: 'ending' });
+    element = el;
+
+    state.patch({ status: 'ending', transitioning: true });
 
     return new Promise<void>((resolve) => {
       rafId1 = requestAnimationFrame(() => {
         rafId1 = 0;
         rafId2 = requestAnimationFrame(() => {
           rafId2 = 0;
-          if (destroyed) return resolve();
+          if (destroyed || currentTransitionId !== transitionId) return resolve();
           waitForAnimations(el).finally(() => {
-            if (destroyed || state.current.status !== 'ending') return resolve();
-            state.patch({ active: false, status: 'idle' });
+            if (destroyed || currentTransitionId !== transitionId || state.current.status !== 'ending') {
+              return resolve();
+            }
+            state.patch({ active: false, status: 'idle', transitioning: false });
             resolve();
           });
         });
@@ -74,17 +103,16 @@ export function createTransition(): TransitionApi {
   }
 
   function cancel(): void {
-    cancelAnimationFrame(rafId1);
-    cancelAnimationFrame(rafId2);
-    rafId1 = 0;
-    rafId2 = 0;
-    if (state.current.status !== 'idle') {
-      state.patch({ status: 'idle' });
+    transitionId++;
+    cancelFrames();
+    if (state.current.status !== 'idle' || state.current.transitioning) {
+      state.patch({ status: 'idle', transitioning: false });
     }
   }
 
   return {
     state,
+    setElement,
     open,
     close,
     cancel,
@@ -96,12 +124,49 @@ export function createTransition(): TransitionApi {
   };
 }
 
-function waitForAnimations(el: HTMLElement | null): Promise<void> {
+export function waitForAnimations(
+  el: HTMLElement | null,
+  { includeCSSTransitions = false }: WaitForAnimationsOptions = {}
+): Promise<void> {
   if (!el) return Promise.resolve();
 
   const animations = el.getAnimations?.() ?? [];
+  const transitionTime = includeCSSTransitions ? getMaxCSSTransitionTime(el) : 0;
+  const transitionPromise =
+    transitionTime > 0
+      ? new Promise<void>((resolve) => {
+          setTimeout(resolve, transitionTime);
+        })
+      : Promise.resolve();
 
-  if (animations.length === 0) return Promise.resolve();
+  if (animations.length === 0) return transitionPromise;
 
-  return Promise.all(animations.map((a) => a.finished)).then(noop, noop);
+  return Promise.all([transitionPromise, ...animations.map((a) => a.finished)]).then(noop, noop);
+}
+
+function getMaxCSSTransitionTime(element: HTMLElement): number {
+  const style = getComputedStyle(element);
+  const durations = parseCSSTimeList(style.transitionDuration);
+  const delays = parseCSSTimeList(style.transitionDelay);
+  const count = Math.max(durations.length, delays.length);
+  let max = 0;
+
+  for (let i = 0; i < count; i++) {
+    const duration = durations[i % durations.length] ?? 0;
+    const delay = delays[i % delays.length] ?? 0;
+    max = Math.max(max, duration + delay);
+  }
+
+  return max;
+}
+
+function parseCSSTimeList(value: string): number[] {
+  return value.split(',').map((part) => {
+    const time = part.trim();
+
+    if (time.endsWith('ms')) return Number.parseFloat(time);
+    if (time.endsWith('s')) return Number.parseFloat(time) * 1000;
+
+    return 0;
+  });
 }

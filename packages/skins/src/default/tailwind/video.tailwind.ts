@@ -36,8 +36,8 @@ export const root = (isShadowDOM: boolean) =>
     '[--media-error-dialog-transition-duration:350ms]',
     '[--media-error-dialog-transition-delay:100ms]',
     '[--media-error-dialog-transition-timing-function:var(--media-spring-timing-function)]',
-    '[--media-popup-transition-duration:100ms]',
-    '[--media-popup-transition-timing-function:ease-out]',
+    '[--media-popover-transition-duration:100ms]',
+    '[--media-popover-transition-timing-function:ease-out]',
     '[--media-surface-background-color:oklch(1_0_0/0.1)]',
     '[--media-surface-inner-border-color:oklch(1_0_0/0.05)]',
     '[--media-surface-outer-border-color:oklch(0_0_0/0.1)]',
@@ -50,7 +50,7 @@ export const root = (isShadowDOM: boolean) =>
     '[--media-tooltip-boundary-offset:0.5rem]',
     '[--media-popover-side-offset:0.5rem]',
     '[--media-popover-boundary-offset:0.5rem]',
-    'motion-reduce:[--media-popup-transition-duration:0ms]',
+    'motion-reduce:[--media-popover-transition-duration:0ms]',
     '[@media(prefers-reduced-transparency:reduce)]:[--media-surface-background-color:oklch(0_0_0)]',
     'contrast-more:[--media-surface-background-color:oklch(0_0_0)]',
     '[@media(prefers-reduced-transparency:reduce)]:[--media-surface-inner-border-color:oklch(1_0_0/0.25)]',
@@ -128,8 +128,8 @@ export const time = {
   ...baseTime,
   group: cn(
     baseTime.group,
-    'grow-0 shrink-0 basis-full order-[-1] px-2.5',
-    '@2xl/media-root:grow @2xl/media-root:shrink @2xl/media-root:basis-0 @2xl/media-root:order-[unset]'
+    'grow-0 shrink-0 basis-full -order-1 px-2.5',
+    '@2xl/media-root:grow @2xl/media-root:shrink @2xl/media-root:basis-0 @2xl/media-root:order-none'
   ),
 };
 
@@ -211,8 +211,8 @@ export const inputFeedback = {
 export { iconState } from '../../shared/tailwind/icon-state';
 export { button } from './components/button';
 export { buttonGroup } from './components/button-group';
-export { icon, iconContainer, iconFlipped, iconHidden } from './components/icon';
-export { menu } from './components/menu';
+export { icon, iconContainer, iconFlipped, iconHidden } from './components/icons';
+export { menu } from './components/menus';
 export { overlay } from './components/overlay';
 export { playbackRate } from './components/playback-rate';
 export { poster } from './components/poster';

@@ -56,7 +56,7 @@ describe('createMenu', () => {
 
   it('starts closed', () => {
     const { menu } = createTestMenu();
-    expect(menu.input.current).toEqual({ active: false, status: 'idle' });
+    expect(menu.input.current).toEqual({ active: false, status: 'idle', transitioning: false });
   });
 
   // -------------------------------------------------------------------------
@@ -78,7 +78,7 @@ describe('createMenu', () => {
 
       menu.open();
 
-      expect(menu.input.current).toEqual({ active: true, status: 'starting' });
+      expect(menu.input.current).toEqual({ active: true, status: 'starting', transitioning: true });
     });
 
     it('closes and calls onOpenChange', () => {

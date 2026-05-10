@@ -14,8 +14,7 @@ import {
   isMenuNavigationKey,
   resolveOffsets,
   resolvePositioningBoundary,
-  syncMenuViewRoot,
-  syncMenuViewTransition,
+  syncMenuViewport,
   type UIFocusEvent,
   type UIKeyboardEvent,
 } from '@videojs/core/dom';
@@ -203,6 +202,8 @@ export const MenuContent = forwardRef<HTMLDivElement, MenuContentProps>(function
   const handleRootMenuBlur = useCallback(
     (event: React.FocusEvent<HTMLDivElement>) => {
       (onBlur as React.FocusEventHandler<HTMLDivElement> | undefined)?.(event);
+      if (menu.navigationInput.current.stack.length) return;
+
       menu.contentProps.onFocusOut(toUIFocusEvent(event));
     },
     [onBlur, menu]
@@ -239,7 +240,7 @@ export const MenuContent = forwardRef<HTMLDivElement, MenuContentProps>(function
     if (isSubmenu) return;
     if (!state.open) return;
 
-    syncMenuViewRoot(internalRef.current, activeSubMenuId !== null);
+    syncMenuViewport(internalRef.current, { activeViewId: activeSubMenuId });
   }, [isSubmenu, state.open, activeSubMenuId]);
 
   useLayoutEffect(() => {
@@ -247,7 +248,11 @@ export const MenuContent = forwardRef<HTMLDivElement, MenuContentProps>(function
 
     const parentContentElement = parentMenu?.menu.contentElement ?? parentContentElementRef.current;
     parentContentElementRef.current = parentContentElement;
-    syncMenuViewTransition(parentContentElement, menuViewElementRef.current, menuViewTransitionState);
+    syncMenuViewport(parentContentElement, {
+      activeViewId: parentMenu?.activeSubMenuId ?? null,
+      view: menuViewElementRef.current,
+      viewState: menuViewTransitionState,
+    });
   });
 
   useLayoutEffect(() => {
@@ -336,7 +341,7 @@ export const MenuContent = forwardRef<HTMLDivElement, MenuContentProps>(function
         ref: menuViewComposedRef,
         props: [
           {
-            ...getMenuViewTransitionAttrs(menuViewTransitionState),
+            ...getMenuViewTransitionAttrs(menuViewTransitionState, { id: subMenuId ?? contentId }),
             role: 'menu' as const,
             tabIndex: -1,
             'data-submenu': '',

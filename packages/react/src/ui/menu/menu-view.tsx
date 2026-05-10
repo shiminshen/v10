@@ -1,7 +1,7 @@
 'use client';
 
 import type { MenuState } from '@videojs/core';
-import { getMenuRootViewAttrs } from '@videojs/core/dom';
+import { getMenuViewAttrs } from '@videojs/core/dom';
 import { forwardRef } from 'react';
 
 import type { UIComponentProps } from '../../utils/types';
@@ -23,7 +23,7 @@ export const MenuView = forwardRef<HTMLDivElement, MenuViewProps>(function MenuV
     {
       state,
       ref: [forwardedRef],
-      props: [getMenuRootViewAttrs(), elementProps],
+      props: [getMenuViewAttrs({ root: true }), elementProps],
     }
   );
 });

@@ -117,12 +117,12 @@ export function createPopover(options: PopoverOptions): PopoverApi {
   /**
    * The transition handler manages animation lifecycle via `createState`:
    *
-   * **Open:** `transition.open()` patches `{ active: true, status: 'starting' }`.
-   * After one RAF it patches `{ status: 'idle' }` and the promise resolves.
+   * **Open:** `transition.open()` patches `{ active: true, status: 'starting', transitioning: true }`.
+   * After one RAF it patches `{ status: 'idle' }`; the promise resolves when animations settle.
    * Frameworks render `data-starting-style` / `data-ending-style` via
    * `getPopupAttrs(state)` — no imperative DOM mutation needed.
    *
-   * **Close:** `transition.close(el)` patches `{ status: 'ending' }` (keeping
+   * **Close:** `transition.close(el)` patches `{ status: 'ending', transitioning: true }` (keeping
    * `active: true` so the element stays mounted). After a double-RAF it waits
    * for `getAnimations()` to settle, then patches `{ active: false, status: 'idle' }`.
    *
@@ -130,7 +130,7 @@ export function createPopover(options: PopoverOptions): PopoverApi {
    * `onOpenChangeComplete` fires after animations finish.
    */
   function applyOpen(reason: PopoverOpenChangeReason, event?: Event): void {
-    const opening = layer.open();
+    const opening = layer.open(popupEl);
     if (!opening) return;
 
     options.group?.()?.open(groupMember);
@@ -311,6 +311,7 @@ export function createPopover(options: PopoverOptions): PopoverApi {
     }
 
     popupEl = el;
+    options.transition.setElement(el);
 
     if (el) {
       // If the popover is already open (e.g., React mount after state

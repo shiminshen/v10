@@ -37,6 +37,7 @@ describe('createMenuViewTransition', () => {
       phase: 'hidden',
       direction: 'forward',
       triggerId: null,
+      transitioning: false,
     });
   });
 
@@ -52,6 +53,7 @@ describe('createMenuViewTransition', () => {
       phase: 'entering',
       direction: 'forward',
       triggerId: 'trigger-1',
+      transitioning: true,
     });
 
     await nextFrame();
@@ -62,6 +64,64 @@ describe('createMenuViewTransition', () => {
     await nextFrame();
 
     expect(focusFirstItem).toHaveBeenCalledWith(element);
+    expect(transition.input.current.transitioning).toBe(false);
+  });
+
+  it('keeps transitioning true until enter animations settle', async () => {
+    const element = addElement();
+    let resolveAnimation = () => {};
+    const animationFinished = new Promise<void>((resolve) => {
+      resolveAnimation = resolve;
+    });
+    const transition = createMenuViewTransition({ waitForAnimations: () => animationFinished });
+
+    transition.setElement(element);
+    transition.sync({ active: true, direction: 'forward', triggerId: 'trigger-1' });
+
+    await nextFrame();
+    await nextFrame();
+
+    expect(transition.input.current.phase).toBe('active');
+    expect(transition.input.current.transitioning).toBe(true);
+
+    resolveAnimation();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(transition.input.current.transitioning).toBe(false);
+  });
+
+  it('keeps transitioning true until default CSS transitions settle', async () => {
+    const element = addElement();
+    const getComputedStyle = window.getComputedStyle.bind(window);
+    const getComputedStyleSpy = vi.spyOn(window, 'getComputedStyle').mockImplementation((target) => {
+      const style = getComputedStyle(target);
+
+      if (target !== element) return style;
+
+      return Object.assign(Object.create(style), {
+        transitionDelay: '0ms',
+        transitionDuration: '30ms',
+      }) as CSSStyleDeclaration;
+    });
+    const transition = createMenuViewTransition();
+
+    try {
+      transition.setElement(element);
+      transition.sync({ active: true, direction: 'forward', triggerId: 'trigger-1' });
+
+      await nextFrame();
+      await nextFrame();
+
+      expect(transition.input.current.phase).toBe('active');
+      expect(transition.input.current.transitioning).toBe(true);
+
+      await new Promise((resolve) => setTimeout(resolve, 40));
+
+      expect(transition.input.current.transitioning).toBe(false);
+    } finally {
+      getComputedStyleSpy.mockRestore();
+    }
   });
 
   it('focuses the first menu view item without scrolling by default', async () => {
@@ -202,11 +262,12 @@ describe('createMenuViewTransition', () => {
         phase: 'entering',
         direction: 'forward',
         triggerId: 'trigger-1',
+        transitioning: true,
       })
     ).toEqual({
       'data-menu-view': '',
-      'data-menu-view-state': 'active',
       'data-direction': 'forward',
+      'data-transitioning': '',
       'data-starting-style': '',
       'data-open': '',
       'data-ending-style': undefined,
@@ -218,11 +279,12 @@ describe('createMenuViewTransition', () => {
         phase: 'exiting',
         direction: 'back',
         triggerId: 'trigger-1',
+        transitioning: true,
       })
     ).toEqual({
       'data-menu-view': '',
-      'data-menu-view-state': 'inactive',
       'data-direction': 'back',
+      'data-transitioning': '',
       'data-starting-style': undefined,
       'data-open': '',
       'data-ending-style': '',

@@ -1,4 +1,4 @@
-import { applyElementProps, getMenuRootViewAttrs } from '@videojs/core/dom';
+import { applyElementProps, getMenuViewAttrs } from '@videojs/core/dom';
 import type { PropertyValues } from '@videojs/element';
 
 import { MediaElement } from '../media-element';
@@ -9,6 +9,6 @@ export class MenuViewElement extends MediaElement {
   protected override update(changed: PropertyValues): void {
     super.update(changed);
 
-    applyElementProps(this, getMenuRootViewAttrs());
+    applyElementProps(this, getMenuViewAttrs({ root: true }));
   }
 }

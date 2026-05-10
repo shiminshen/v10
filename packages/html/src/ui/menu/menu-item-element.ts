@@ -54,6 +54,7 @@ export class MenuItemElement extends MediaElement {
         {
           onClick: (event: MouseEvent) => {
             const currentCtx = this.#ctx.value;
+            if (event.button !== 0) return;
             if (!currentCtx || this.disabled) return;
 
             const target = this.commandfor;
@@ -76,6 +77,14 @@ export class MenuItemElement extends MediaElement {
 
             currentCtx.menu.push(target, this.id);
             event.preventDefault();
+          },
+          onPointerdown: (event: PointerEvent) => {
+            const currentCtx = this.#ctx.value;
+            if (event.button !== 0 || !currentCtx || !this.commandfor || this.disabled) return;
+
+            currentCtx.menu.push(this.commandfor, this.id);
+            event.preventDefault();
+            event.stopImmediatePropagation();
           },
           onPointerenter: () => {
             const currentCtx = this.#ctx.value;

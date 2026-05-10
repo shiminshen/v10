@@ -10,6 +10,7 @@ import {
   ChevronIcon,
   FullscreenEnterIcon,
   FullscreenExitIcon,
+  GearIcon,
   PauseIcon,
   PipEnterIcon,
   PipExitIcon,
@@ -129,6 +130,109 @@ function CaptionsMenuItems(): ReactNode {
   );
 }
 
+function MenuChevron({ flipped = false }: { flipped?: boolean }): ReactNode {
+  return <ChevronIcon className={cn('media-icon media-menu__chevron', flipped ? 'media-icon--flipped' : undefined)} />;
+}
+
+function PlaybackRateSettingsSubmenu(): ReactNode {
+  return (
+    <PlaybackRateMenu.Root>
+      <PlaybackRateSettingsSubmenuContent />
+    </PlaybackRateMenu.Root>
+  );
+}
+
+function PlaybackRateSettingsSubmenuContent(): ReactNode {
+  const { options, state, value } = usePlaybackRateMenu();
+  const selectedLabel = options.find((option) => option.value === value)?.label ?? state.label;
+
+  return (
+    <>
+      <PlaybackRateMenu.Trigger
+        className="media-menu__item media-menu__item--submenu"
+        render={(props) => (
+          <div {...props}>
+            <span>Speed</span>
+            <span className="media-menu__hint">
+              <span className="media-menu__hint-label">{selectedLabel}</span>
+              <MenuChevron />
+            </span>
+          </div>
+        )}
+      >
+        {null}
+      </PlaybackRateMenu.Trigger>
+      <PlaybackRateMenu.Content className="media-menu__panel">
+        <Menu.Back className="media-menu__back">
+          <MenuChevron flipped />
+          Speed
+        </Menu.Back>
+        <PlaybackRateMenuItems />
+      </PlaybackRateMenu.Content>
+    </>
+  );
+}
+
+function CaptionsSettingsSubmenu(): ReactNode {
+  return (
+    <CaptionsMenu.Root>
+      <CaptionsSettingsSubmenuContent />
+    </CaptionsMenu.Root>
+  );
+}
+
+function CaptionsSettingsSubmenuContent(): ReactNode {
+  const { availability, options, state, value } = useCaptionsMenu();
+
+  if (availability !== 'available') return null;
+
+  const selectedLabel = options.find((option) => option.value === value)?.label ?? state.label;
+
+  return (
+    <>
+      <CaptionsMenu.Trigger
+        className="media-menu__item media-menu__item--submenu"
+        render={(props) => (
+          <div {...props}>
+            <span>Captions</span>
+            <span className="media-menu__hint">
+              <span className="media-menu__hint-label">{selectedLabel}</span>
+              <MenuChevron />
+            </span>
+          </div>
+        )}
+      >
+        {null}
+      </CaptionsMenu.Trigger>
+      <CaptionsMenu.Content className="media-menu__panel">
+        <Menu.Back className="media-menu__back">
+          <MenuChevron flipped />
+          Captions
+        </Menu.Back>
+        <CaptionsMenuItems />
+      </CaptionsMenu.Content>
+    </>
+  );
+}
+
+function SettingsMenu(): ReactNode {
+  return (
+    <Menu.Root side="top" align="center">
+      <Menu.Trigger aria-label="Settings" className="media-button--settings" render={<Button />}>
+        <GearIcon className="media-icon media-icon--settings" />
+      </Menu.Trigger>
+      <Menu.Content className="media-surface media-popover media-menu media-menu--settings">
+        <Menu.View className="media-menu__panel">
+          <div className="media-menu__group">
+            <PlaybackRateSettingsSubmenu />
+            <CaptionsSettingsSubmenu />
+          </div>
+        </Menu.View>
+      </Menu.Content>
+    </Menu.Root>
+  );
+}
+
 export function VideoSkin(props: VideoSkinProps): ReactNode {
   const { children, className, poster, ...rest } = props;
 
@@ -228,24 +332,9 @@ export function VideoSkin(props: VideoSkinProps): ReactNode {
           </div>
 
           <div className="media-button-group">
-            <PlaybackRateMenu.Root side="top" align="center">
-              <PlaybackRateMenu.Trigger className="media-button--playback-rate" render={<Button />} />
-              <PlaybackRateMenu.Content className="media-surface media-popover media-menu media-menu--playback-rate">
-                <PlaybackRateMenuItems />
-              </PlaybackRateMenu.Content>
-            </PlaybackRateMenu.Root>
-
             <VolumePopover />
 
-            <CaptionsMenu.Root side="top" align="center">
-              <CaptionsMenu.Trigger className="media-button--captions" render={<Button />}>
-                <CaptionsOffIcon className="media-icon media-icon--captions-off" />
-                <CaptionsOnIcon className="media-icon media-icon--captions-on" />
-              </CaptionsMenu.Trigger>
-              <CaptionsMenu.Content className="media-surface media-popover media-menu media-menu--captions">
-                <CaptionsMenuItems />
-              </CaptionsMenu.Content>
-            </CaptionsMenu.Root>
+            <SettingsMenu />
 
             <Tooltip.Root side="top">
               <Tooltip.Trigger

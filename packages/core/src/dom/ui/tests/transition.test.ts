@@ -4,7 +4,7 @@ import { createTransition } from '../transition';
 describe('createTransition', () => {
   it('starts with idle state', () => {
     const handler = createTransition();
-    expect(handler.state.current).toEqual({ active: false, status: 'idle' });
+    expect(handler.state.current).toEqual({ active: false, status: 'idle', transitioning: false });
   });
 
   describe('open', () => {
@@ -13,7 +13,7 @@ describe('createTransition', () => {
 
       handler.open();
 
-      expect(handler.state.current).toEqual({ active: true, status: 'starting' });
+      expect(handler.state.current).toEqual({ active: true, status: 'starting', transitioning: true });
     });
 
     it('transitions to idle after a double-RAF', async () => {
@@ -27,7 +27,31 @@ describe('createTransition', () => {
       });
 
       await promise;
-      expect(handler.state.current).toEqual({ active: true, status: 'idle' });
+      expect(handler.state.current).toEqual({ active: true, status: 'idle', transitioning: false });
+    });
+
+    it('keeps transitioning true until open animations settle', async () => {
+      const handler = createTransition();
+      const el = document.createElement('div');
+      let resolveAnimation!: () => void;
+      const animation = new Promise<void>((resolve) => {
+        resolveAnimation = resolve;
+      });
+
+      el.getAnimations = vi.fn(() => [{ finished: animation } as unknown as Animation]);
+
+      const promise = handler.open(el);
+
+      await vi.waitFor(() => {
+        expect(handler.state.current.status).toBe('idle');
+      });
+
+      expect(handler.state.current.transitioning).toBe(true);
+
+      resolveAnimation();
+      await promise;
+
+      expect(handler.state.current.transitioning).toBe(false);
     });
   });
 
@@ -41,7 +65,7 @@ describe('createTransition', () => {
 
       handler.close(el);
 
-      expect(handler.state.current).toEqual({ active: true, status: 'ending' });
+      expect(handler.state.current).toEqual({ active: true, status: 'ending', transitioning: true });
     });
 
     it('keeps open true during close animation', () => {
@@ -68,7 +92,7 @@ describe('createTransition', () => {
       });
 
       await promise;
-      expect(handler.state.current).toEqual({ active: false, status: 'idle' });
+      expect(handler.state.current).toEqual({ active: false, status: 'idle', transitioning: false });
     });
   });
 
@@ -81,6 +105,7 @@ describe('createTransition', () => {
 
       handler.cancel();
       expect(handler.state.current.status).toBe('idle');
+      expect(handler.state.current.transitioning).toBe(false);
     });
 
     it('preserves open state', () => {

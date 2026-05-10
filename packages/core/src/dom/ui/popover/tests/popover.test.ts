@@ -6,7 +6,7 @@ import { createTestPopover } from './popover-helpers';
 describe('createPopover', () => {
   it('starts closed', () => {
     const { popover } = createTestPopover();
-    expect(popover.input.current).toEqual({ active: false, status: 'idle' });
+    expect(popover.input.current).toEqual({ active: false, status: 'idle', transitioning: false });
   });
 
   describe('open/close', () => {
@@ -24,7 +24,7 @@ describe('createPopover', () => {
 
       popover.open();
 
-      expect(popover.input.current).toEqual({ active: true, status: 'starting' });
+      expect(popover.input.current).toEqual({ active: true, status: 'starting', transitioning: true });
     });
 
     it('calls onOpenChange when closing', () => {
@@ -46,7 +46,7 @@ describe('createPopover', () => {
       popover.open();
       popover.close();
 
-      expect(popover.input.current).toEqual({ active: true, status: 'ending' });
+      expect(popover.input.current).toEqual({ active: true, status: 'ending', transitioning: true });
     });
 
     it('does not call onOpenChange if already open', () => {

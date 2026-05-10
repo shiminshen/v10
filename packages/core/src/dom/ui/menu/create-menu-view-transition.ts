@@ -1,6 +1,7 @@
 import { createState, type State } from '@videojs/store';
 import { getTransitionStyleAttrs, type TransitionStyleAttrs } from '../../../core/ui/transition';
 import { forceLayout } from '../../utils/layout';
+import { waitForAnimations as waitForElementAnimations } from '../transition';
 
 import type { NavigationState } from './create-menu';
 
@@ -8,12 +9,11 @@ export type MenuViewTransitionPhase = 'hidden' | 'entering' | 'active' | 'exitin
 
 export type MenuViewTransitionDirection = NavigationState['direction'];
 
-export type MenuViewState = 'active' | 'inactive';
-
 export interface MenuViewTransitionState {
   phase: MenuViewTransitionPhase;
   direction: MenuViewTransitionDirection;
   triggerId: string | null;
+  transitioning?: boolean;
 }
 
 export interface MenuViewTransitionSyncOptions {
@@ -24,10 +24,15 @@ export interface MenuViewTransitionSyncOptions {
 
 export interface MenuViewTransitionAttrs extends TransitionStyleAttrs {
   'data-menu-view': '';
-  'data-menu-view-state': MenuViewState;
+  'data-menu-view-id'?: string | undefined;
   'data-direction': MenuViewTransitionDirection;
   'data-open'?: '' | undefined;
   hidden: boolean;
+}
+
+export interface MenuViewTransitionAttrsOptions {
+  id?: string;
+  root?: boolean;
 }
 
 export interface MenuViewTransitionOptions {
@@ -47,15 +52,8 @@ const DEFAULT_MENU_VIEW_TRANSITION_STATE: MenuViewTransitionState = {
   phase: 'hidden',
   direction: 'forward',
   triggerId: null,
+  transitioning: false,
 };
-
-async function waitForElementAnimations(element: HTMLElement): Promise<void> {
-  const animations = element.getAnimations?.() ?? [];
-
-  if (!animations.length) return;
-
-  await Promise.all(animations.map((animation) => animation.finished)).catch(() => {});
-}
 
 function focusFirstMenuViewItem(element: HTMLElement): void {
   const firstItem = element.querySelector<HTMLElement>('[data-item]');
@@ -63,16 +61,18 @@ function focusFirstMenuViewItem(element: HTMLElement): void {
   firstItem?.focus({ preventScroll: true });
 }
 
-function getMenuViewState(phase: MenuViewTransitionPhase): MenuViewState {
-  return phase === 'entering' || phase === 'active' ? 'active' : 'inactive';
-}
+export function getMenuViewTransitionAttrs(
+  state: MenuViewTransitionState,
+  { id, root = false }: MenuViewTransitionAttrsOptions = {}
+): MenuViewTransitionAttrs {
+  const viewId = id ?? (root ? 'root' : undefined);
 
-export function getMenuViewTransitionAttrs(state: MenuViewTransitionState): MenuViewTransitionAttrs {
   return {
     'data-menu-view': '',
-    'data-menu-view-state': getMenuViewState(state.phase),
+    ...(viewId && { 'data-menu-view-id': viewId }),
     'data-direction': state.direction,
     ...getTransitionStyleAttrs({
+      transitioning: state.transitioning,
       transitionStarting: state.phase === 'entering',
       transitionEnding: state.phase === 'exiting',
     }),
@@ -83,7 +83,9 @@ export function getMenuViewTransitionAttrs(state: MenuViewTransitionState): Menu
 
 export function createMenuViewTransition(options: MenuViewTransitionOptions = {}): MenuViewTransitionApi {
   const input = createState<MenuViewTransitionState>(DEFAULT_MENU_VIEW_TRANSITION_STATE);
-  const waitForAnimations = options.waitForAnimations ?? waitForElementAnimations;
+  const waitForAnimations =
+    options.waitForAnimations ??
+    ((element: HTMLElement) => waitForElementAnimations(element, { includeCSSTransitions: true }));
   const focusFirstItem = options.focusFirstItem ?? focusFirstMenuViewItem;
 
   let element: HTMLElement | null = null;
@@ -137,6 +139,17 @@ export function createMenuViewTransition(options: MenuViewTransitionOptions = {}
           if (currentTransitionId !== transitionId) return;
           focusFirstItem(currentElement);
         });
+
+        waitForAnimations(currentElement).then(
+          () => {
+            if (currentTransitionId !== transitionId) return;
+            input.patch({ transitioning: false });
+          },
+          () => {
+            if (currentTransitionId !== transitionId) return;
+            input.patch({ transitioning: false });
+          }
+        );
       });
     });
   }
@@ -154,6 +167,7 @@ export function createMenuViewTransition(options: MenuViewTransitionOptions = {}
       input.patch({
         phase: 'hidden',
         triggerId: null,
+        transitioning: false,
       });
 
       if (direction === 'back') {
@@ -170,6 +184,7 @@ export function createMenuViewTransition(options: MenuViewTransitionOptions = {}
       phase: 'entering',
       direction,
       triggerId,
+      transitioning: true,
     });
     scheduleCurrentPhase();
   }
@@ -181,6 +196,7 @@ export function createMenuViewTransition(options: MenuViewTransitionOptions = {}
     input.patch({
       phase: 'exiting',
       direction,
+      transitioning: true,
     });
     scheduleCurrentPhase();
   }

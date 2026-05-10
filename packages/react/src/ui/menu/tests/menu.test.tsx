@@ -270,7 +270,7 @@ describe('MenuContent', () => {
     fireEvent.click(screen.getByTestId('submenu-trigger'));
 
     await waitFor(() => {
-      expect(screen.getByTestId('root-view').getAttribute('data-menu-view-state')).toBe('inactive');
+      expect(screen.getByTestId('root-view').hasAttribute('data-open')).toBe(false);
     });
   });
 
@@ -309,8 +309,11 @@ describe('MenuContent', () => {
     render(<SubmenuFixture />);
 
     expect(screen.getByTestId('root-content').hasAttribute('data-menu-viewport')).toBe(true);
-    expect(screen.getByTestId('root-view').hasAttribute('data-menu-root-view')).toBe(true);
     expect(screen.getByTestId('root-view').hasAttribute('data-menu-view')).toBe(true);
+    expect(screen.getByTestId('root-view').getAttribute('data-menu-view-id')).toBe('root');
+    expect(screen.getByTestId('root-view').hasAttribute('data-open')).toBe(true);
+    expect(screen.getByTestId('root-view').getAttribute('data-direction')).toBe('forward');
+    expect(screen.getByTestId('root-view').hasAttribute('hidden')).toBe(false);
   });
 
   it('forces layout while the submenu starting style is applied', async () => {
@@ -318,7 +321,7 @@ describe('MenuContent', () => {
     const getBoundingClientRect = HTMLElement.prototype.getBoundingClientRect;
 
     HTMLElement.prototype.getBoundingClientRect = function getBoundingClientRectMock() {
-      if (this.hasAttribute('data-submenu')) {
+      if (this.hasAttribute('data-menu-view') && this.getAttribute('data-menu-view-id') !== 'root') {
         startingStyleMeasurements.push(this.hasAttribute('data-starting-style'));
       }
 
@@ -351,9 +354,18 @@ describe('MenuContent', () => {
     fireEvent.click(screen.getByTestId('submenu-trigger'));
 
     await waitFor(() => {
-      expect(screen.getByTestId('root-view').getAttribute('data-menu-view-state')).toBe('inactive');
+      expect(screen.getByTestId('root-view').hasAttribute('data-open')).toBe(false);
       expect(screen.getByTestId('submenu-content').hasAttribute('hidden')).toBe(false);
     });
+  });
+
+  it('does not open a submenu from a secondary pointer button', () => {
+    render(<SubmenuFixture />);
+
+    fireEvent.pointerDown(screen.getByTestId('submenu-trigger'), { button: 2 });
+
+    expect(screen.queryByTestId('submenu-content')).toBeNull();
+    expect(screen.getByTestId('root-view').hasAttribute('data-open')).toBe(true);
   });
 
   it('handles keyboard navigation in the active submenu view', async () => {
@@ -372,14 +384,50 @@ describe('MenuContent', () => {
     expect(screen.getByTestId('root-item').hasAttribute('data-highlighted')).toBe(false);
   });
 
-  it('highlights the first item when a submenu view becomes active', async () => {
+  it('highlights the back button when a submenu view becomes active', async () => {
     render(<SubmenuFixture />);
 
     fireEvent.click(screen.getByTestId('submenu-trigger'));
 
     await waitFor(() => {
-      expect(screen.getByTestId('submenu-item').hasAttribute('data-highlighted')).toBe(true);
+      expect(screen.getByTestId('submenu-back').hasAttribute('data-highlighted')).toBe(true);
     });
+  });
+
+  it('does not mark submenu child parts with the submenu panel attribute', async () => {
+    render(<SubmenuFixture />);
+
+    fireEvent.click(screen.getByTestId('submenu-trigger'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('submenu-content').hasAttribute('data-submenu')).toBe(true);
+    });
+
+    expect(screen.getByTestId('submenu-back').hasAttribute('data-submenu')).toBe(false);
+    expect(screen.getByTestId('submenu-item').hasAttribute('data-submenu')).toBe(false);
+  });
+
+  it('highlights pointer-entered back buttons without moving focus', async () => {
+    render(<SubmenuFixture />);
+
+    fireEvent.click(screen.getByTestId('submenu-trigger'));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('submenu-content')).not.toBeNull();
+    });
+
+    const back = screen.getByTestId('submenu-back');
+    const item = screen.getByTestId('submenu-item');
+    const focus = vi.spyOn(back, 'focus');
+
+    fireEvent.pointerEnter(item);
+    expect(item.hasAttribute('data-highlighted')).toBe(true);
+
+    fireEvent.pointerEnter(back);
+
+    expect(focus).not.toHaveBeenCalled();
+    expect(back.hasAttribute('data-highlighted')).toBe(true);
+    expect(item.hasAttribute('data-highlighted')).toBe(false);
   });
 
   it('returns to the parent view when selecting an item in a submenu', async () => {
@@ -390,7 +438,7 @@ describe('MenuContent', () => {
     fireEvent.click(screen.getByTestId('submenu-trigger'));
 
     await waitFor(() => {
-      expect(screen.getByTestId('root-view').getAttribute('data-menu-view-state')).toBe('inactive');
+      expect(screen.getByTestId('root-view').hasAttribute('data-open')).toBe(false);
     });
 
     fireEvent.click(screen.getByTestId('submenu-item'));
@@ -398,7 +446,7 @@ describe('MenuContent', () => {
     expect(onSelect).toHaveBeenCalledTimes(1);
 
     await waitFor(() => {
-      expect(screen.getByTestId('root-view').getAttribute('data-menu-view-state')).toBe('active');
+      expect(screen.getByTestId('root-view').hasAttribute('data-open')).toBe(true);
     });
   });
 
@@ -411,13 +459,13 @@ describe('MenuContent', () => {
     fireEvent.click(screen.getByTestId('submenu-trigger'));
 
     await waitFor(() => {
-      expect(screen.getByTestId('root-view').getAttribute('data-menu-view-state')).toBe('inactive');
+      expect(screen.getByTestId('root-view').hasAttribute('data-open')).toBe(false);
     });
 
     fireEvent.keyDown(screen.getByTestId('submenu-content'), { key: 'Escape' });
 
     await waitFor(() => {
-      expect(screen.getByTestId('root-view').getAttribute('data-menu-view-state')).toBe('active');
+      expect(screen.getByTestId('root-view').hasAttribute('data-open')).toBe(true);
     });
 
     expect(onRootOpenChange).not.toHaveBeenCalledWith(false, expect.anything());
@@ -430,13 +478,13 @@ describe('MenuContent', () => {
     fireEvent.click(screen.getByTestId('submenu-trigger'));
 
     await waitFor(() => {
-      expect(screen.getByTestId('root-view').getAttribute('data-menu-view-state')).toBe('inactive');
+      expect(screen.getByTestId('root-view').hasAttribute('data-open')).toBe(false);
     });
 
     fireEvent.keyDown(screen.getByTestId('submenu-content'), { key: 'ArrowLeft' });
 
     await waitFor(() => {
-      expect(screen.getByTestId('root-view').getAttribute('data-menu-view-state')).toBe('active');
+      expect(screen.getByTestId('root-view').hasAttribute('data-open')).toBe(true);
     });
   });
 
@@ -448,12 +496,12 @@ describe('MenuContent', () => {
     fireEvent.click(screen.getByTestId('submenu-trigger'));
 
     await waitFor(() => {
-      expect(screen.getByTestId('root-view').getAttribute('data-menu-view-state')).toBe('inactive');
+      expect(screen.getByTestId('root-view').hasAttribute('data-open')).toBe(false);
     });
 
     fireEvent.keyDown(screen.getByTestId('submenu-content'), { key: 'ArrowLeft' });
 
-    expect(screen.getByTestId('root-view').getAttribute('data-menu-view-state')).toBe('inactive');
+    expect(screen.getByTestId('root-view').hasAttribute('data-open')).toBe(false);
   });
 
   it('allows Escape from an inactive sibling submenu view to close the root menu', async () => {
@@ -465,7 +513,7 @@ describe('MenuContent', () => {
     fireEvent.click(screen.getByTestId('quality-trigger'));
 
     await waitFor(() => {
-      expect(screen.getByTestId('quality-content').getAttribute('data-menu-view-state')).toBe('active');
+      expect(screen.getByTestId('quality-content').hasAttribute('data-open')).toBe(true);
     });
 
     const exitingContent = screen.getByTestId('quality-content');

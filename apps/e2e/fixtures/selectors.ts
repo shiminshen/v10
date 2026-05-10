@@ -29,6 +29,9 @@ export const SELECTORS = {
   pipButton: 'media-pip-button, .media-button--pip',
   captionsButton: 'media-captions-menu-trigger, media-captions-button, .media-button--captions',
   playbackRateButton: 'media-playback-rate-button, .media-button--playback-rate',
+  settingsButton: '.media-button--settings',
+  settingsCaptionsItem: 'media-captions-menu-trigger, [role="menuitem"]:has-text("Captions")',
+  settingsSpeedItem: 'media-playback-rate-menu-trigger, [role="menuitem"]:has-text("Speed")',
 
   // Sliders
   // HTML: <media-time-slider>, React: horizontal .media-slider inside .media-time-controls

@@ -6,9 +6,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { playerContext } from '../../../player/context';
 import { MediaElement } from '../../media-element';
+import { MenuElement } from '../../menu/menu-element';
 import { MenuItemIndicatorElement } from '../../menu/menu-item-indicator-element';
 import { MenuRadioGroupElement } from '../../menu/menu-radio-group-element';
 import { MenuRadioItemElement } from '../../menu/menu-radio-item-element';
+import { MenuViewElement } from '../../menu/menu-view-element';
 import { CaptionsMenuElement } from '../captions-menu-element';
 import { CaptionsMenuTriggerElement } from '../captions-menu-trigger-element';
 import { CaptionsOptionsElement } from '../captions-options-element';
@@ -250,5 +252,44 @@ describe('CaptionsMenuTriggerElement', () => {
     expect(trigger.getAttribute('data-availability')).toBe('unavailable');
     expect(trigger.hasAttribute('data-disabled')).toBe(true);
     expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it('does not open a submenu from a secondary pointer button', async () => {
+    const provider = document.createElement('test-captions-menu-player') as TestPlayerProviderElement;
+    const root = createElement(MenuElement);
+    const rootView = createElement(MenuViewElement);
+    const trigger = createElement(CaptionsMenuTriggerElement);
+    const menu = createElement(CaptionsMenuElement);
+    const options = createElement(CaptionsOptionsElement);
+
+    provider.setStore(createTextTrackStore());
+    root.open = true;
+    trigger.id = 'captions-trigger';
+    trigger.commandfor = 'captions-menu';
+    menu.id = 'captions-menu';
+
+    menu.append(options);
+    rootView.append(trigger);
+    root.append(rootView, menu);
+    provider.append(root);
+    document.body.append(provider);
+
+    await root.updateComplete;
+    await rootView.updateComplete;
+    await trigger.updateComplete;
+    await menu.updateComplete;
+    await options.updateComplete;
+
+    const handled = trigger.dispatchEvent(
+      new PointerEvent('pointerdown', { bubbles: true, cancelable: true, button: 2 })
+    );
+
+    await root.updateComplete;
+    await trigger.updateComplete;
+    await menu.updateComplete;
+
+    expect(handled).toBe(true);
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+    expect(menu.hasAttribute('data-open')).toBe(false);
   });
 });

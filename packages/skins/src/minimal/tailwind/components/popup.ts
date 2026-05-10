@@ -5,8 +5,8 @@ const base = cn(
   'm-0 border-0 text-inherit overflow-visible',
   // Animation
   'transition-[transform,scale,opacity,filter]',
-  'duration-(--media-popup-transition-duration)',
-  'ease-(--media-popup-transition-timing-function)',
+  'duration-(--media-popover-transition-duration)',
+  'ease-(--media-popover-transition-timing-function)',
   'data-starting-style:opacity-0 data-starting-style:scale-50 data-starting-style:blur-sm',
   'data-ending-style:opacity-0 data-ending-style:scale-50 data-ending-style:blur-sm',
   'data-instant:duration-0',
@@ -30,8 +30,8 @@ export const popup = {
   tooltip: cn(
     base,
     'px-2 py-1 rounded-lg text-[0.75rem] whitespace-nowrap',
-    'bg-(--media-tooltip-background-color) [backdrop-filter:var(--media-tooltip-backdrop-filter)]',
-    'ring-1 ring-(color:--media-tooltip-border-color) shadow-md shadow-black/10',
+    'bg-(--media-popover-background-color) backdrop-filter-(--media-popover-backdrop-filter)',
+    'ring-1 ring-(color:--media-popover-border-color) shadow-md shadow-black/10',
     'text-(--media-tooltip-text-color)',
     'data-[side=top]:before:h-(--media-tooltip-side-offset) data-[side=bottom]:before:h-(--media-tooltip-side-offset)',
     'data-[side=left]:before:w-(--media-tooltip-side-offset) data-[side=right]:before:w-(--media-tooltip-side-offset)'
