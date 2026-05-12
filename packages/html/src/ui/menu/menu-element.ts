@@ -85,6 +85,7 @@ export class MenuElement extends MediaElement {
   #disconnect: AbortController | null = null;
   #triggerAbort: AbortController | null = null;
   #currentTrigger: HTMLElement | null = null;
+  #triggerCommandSet = false;
 
   override connectedCallback(): void {
     super.connectedCallback();
@@ -338,6 +339,13 @@ export class MenuElement extends MediaElement {
     this.#menu?.setTriggerElement(triggerElement);
 
     if (triggerElement && this.#menu) {
+      if (triggerElement.localName === 'button' && !triggerElement.hasAttribute('command')) {
+        // Keep `commandfor` available for trigger discovery without letting
+        // native invoker commands toggle the Popover API behind our state.
+        triggerElement.setAttribute('command', '--videojs-menu-trigger');
+        this.#triggerCommandSet = true;
+      }
+
       this.#triggerAbort = new AbortController();
       applyElementProps(triggerElement, this.#menu.triggerProps, { signal: this.#triggerAbort.signal });
     }
@@ -357,12 +365,16 @@ export class MenuElement extends MediaElement {
         'aria-haspopup': undefined,
         'aria-controls': undefined,
       });
+      if (this.#triggerCommandSet) {
+        this.#currentTrigger.removeAttribute('command');
+      }
       this.#currentTrigger.style.removeProperty('anchor-name');
     }
 
     this.#triggerAbort?.abort();
     this.#triggerAbort = null;
     this.#currentTrigger = null;
+    this.#triggerCommandSet = false;
   }
 
   #getBoundaryElement(): Element | null {

@@ -178,7 +178,7 @@ describe('createPopover', () => {
       expect(onOpenChange).toHaveBeenCalledWith(false, expect.objectContaining({ reason: 'click' }));
     });
 
-    it('re-opens on click during close animation', () => {
+    it('keeps closing on click during close animation', () => {
       const { popover, onOpenChange } = createTestPopover();
       const event = { preventDefault: vi.fn() } as unknown as UIEvent;
 
@@ -186,13 +186,12 @@ describe('createPopover', () => {
       popover.close();
       onOpenChange.mockClear();
 
-      // Click during close animation should re-open
       popover.triggerProps.onClick(event);
 
       expect(event.preventDefault).toHaveBeenCalledTimes(1);
       expect(popover.input.current.active).toBe(true);
-      expect(popover.input.current.status).not.toBe('ending');
-      expect(onOpenChange).toHaveBeenCalledWith(true, expect.objectContaining({ reason: 'click' }));
+      expect(popover.input.current.status).toBe('ending');
+      expect(onOpenChange).not.toHaveBeenCalled();
     });
 
     it('does not open on click on touch devices when openOnHover is enabled', () => {

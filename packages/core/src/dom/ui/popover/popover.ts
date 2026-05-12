@@ -202,9 +202,7 @@ export function createPopover(options: PopoverOptions): PopoverApi {
 
       if (!canToggleOnClick()) return;
 
-      // During a close animation (open=true, status=ending), treat
-      // the click as a re-open rather than a second close attempt.
-      if (state.current.active && state.current.status !== 'ending') {
+      if (state.current.active) {
         applyClose('click', event);
       } else {
         applyOpen('click', event);

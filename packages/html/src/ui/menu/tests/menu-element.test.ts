@@ -664,6 +664,39 @@ describe('MenuElement', () => {
     expect(item.hasAttribute('data-highlighted')).toBe(true);
   });
 
+  it('closes an open root menu from its trigger in one click', async () => {
+    const wrapper = document.createElement('div');
+    const trigger = document.createElement('button');
+    const root = createElement(MenuElement);
+    const item = createElement(MenuItemElement);
+    const onOpenChange = vi.fn();
+
+    root.id = 'root-menu';
+    root.open = true;
+    trigger.setAttribute('commandfor', 'root-menu');
+    item.textContent = 'Auto';
+
+    root.addEventListener('open-change', onOpenChange);
+    root.append(item);
+    wrapper.append(trigger, root);
+    document.body.append(wrapper);
+
+    await root.updateComplete;
+    await item.updateComplete;
+    onOpenChange.mockClear();
+
+    expect(trigger.getAttribute('command')).toBe('--videojs-menu-trigger');
+
+    trigger.click();
+
+    await root.updateComplete;
+
+    expect(root.open).toBe(false);
+    expect(onOpenChange).toHaveBeenCalledWith(
+      expect.objectContaining({ detail: expect.objectContaining({ open: false, reason: 'click' }) })
+    );
+  });
+
   it('closes an open root menu when parent controls hide', async () => {
     const provider = document.createElement('test-menu-player-provider') as TestPlayerProviderElement;
     const controls = createElement(ControlsElement);

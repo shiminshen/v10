@@ -308,6 +308,22 @@ describe('createMenu', () => {
       expect(onOpenChange).toHaveBeenCalledWith(false, expect.objectContaining({ reason: 'click' }));
     });
 
+    it('keeps closing on click during close animation', () => {
+      const { menu, onOpenChange } = createTestMenu();
+      const event = { preventDefault: vi.fn(), stopPropagation: vi.fn() } as unknown as UIEvent;
+
+      menu.open();
+      menu.close();
+      onOpenChange.mockClear();
+
+      menu.triggerProps.onClick(event);
+
+      expect(event.preventDefault).toHaveBeenCalledTimes(1);
+      expect(menu.input.current.active).toBe(true);
+      expect(menu.input.current.status).toBe('ending');
+      expect(onOpenChange).not.toHaveBeenCalled();
+    });
+
     it('handles navigation keys while the open trigger has focus', () => {
       const { menu } = createTestMenu();
       const element = addItem('Auto');

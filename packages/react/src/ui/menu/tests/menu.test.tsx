@@ -609,6 +609,26 @@ describe('MenuContent', () => {
     expect(screen.getByTestId('item').hasAttribute('data-highlighted')).toBe(true);
   });
 
+  it('closes an open root menu from its trigger in one click', async () => {
+    const onRootOpenChange = vi.fn();
+
+    render(
+      <MenuRoot defaultOpen onOpenChange={onRootOpenChange}>
+        <MenuTrigger data-testid="trigger">Settings</MenuTrigger>
+        <MenuContent data-testid="content">
+          <MenuItem data-testid="item">Auto</MenuItem>
+        </MenuContent>
+      </MenuRoot>
+    );
+    onRootOpenChange.mockClear();
+
+    fireEvent.click(screen.getByTestId('trigger'));
+
+    await waitFor(() => {
+      expect(onRootOpenChange).toHaveBeenCalledWith(false, expect.objectContaining({ reason: 'click' }));
+    });
+  });
+
   it('prevents default before native player hotkeys receive menu keys', () => {
     const defaultPreventedValues: boolean[] = [];
     const onContainerKeyDown = vi.fn((event: KeyboardEvent) => {
