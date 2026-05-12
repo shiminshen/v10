@@ -158,18 +158,21 @@ describe('createPopover', () => {
 
       popover.triggerProps.onClick(event);
 
+      expect(event.preventDefault).toHaveBeenCalledTimes(1);
       expect(popover.input.current.active).toBe(true);
       expect(onOpenChange).toHaveBeenCalledWith(true, expect.objectContaining({ reason: 'click' }));
     });
 
     it('closes on click when open', () => {
       const { popover, onOpenChange } = createTestPopover();
+      const event = { preventDefault: vi.fn() } as unknown as UIEvent;
 
       popover.open();
       onOpenChange.mockClear();
 
-      popover.triggerProps.onClick({ preventDefault: vi.fn() } as unknown as UIEvent);
+      popover.triggerProps.onClick(event);
 
+      expect(event.preventDefault).toHaveBeenCalledTimes(1);
       // active stays true until close animation completes
       expect(popover.input.current.active).toBe(true);
       expect(onOpenChange).toHaveBeenCalledWith(false, expect.objectContaining({ reason: 'click' }));
@@ -177,14 +180,16 @@ describe('createPopover', () => {
 
     it('re-opens on click during close animation', () => {
       const { popover, onOpenChange } = createTestPopover();
+      const event = { preventDefault: vi.fn() } as unknown as UIEvent;
 
       popover.open();
       popover.close();
       onOpenChange.mockClear();
 
       // Click during close animation should re-open
-      popover.triggerProps.onClick({ preventDefault: vi.fn() } as unknown as UIEvent);
+      popover.triggerProps.onClick(event);
 
+      expect(event.preventDefault).toHaveBeenCalledTimes(1);
       expect(popover.input.current.active).toBe(true);
       expect(popover.input.current.status).not.toBe('ending');
       expect(onOpenChange).toHaveBeenCalledWith(true, expect.objectContaining({ reason: 'click' }));
@@ -199,9 +204,11 @@ describe('createPopover', () => {
       const { popover, onOpenChange } = createTestPopover({
         openOnHover: () => true,
       });
+      const event = { preventDefault: vi.fn() } as unknown as UIEvent;
 
-      popover.triggerProps.onClick({ preventDefault: vi.fn() } as unknown as UIEvent);
+      popover.triggerProps.onClick(event);
 
+      expect(event.preventDefault).toHaveBeenCalledTimes(1);
       expect(onOpenChange).not.toHaveBeenCalled();
       expect(popover.input.current.active).toBe(false);
 

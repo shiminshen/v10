@@ -198,6 +198,8 @@ export function createPopover(options: PopoverOptions): PopoverApi {
 
   const triggerProps: PopoverTriggerProps = {
     onClick(event) {
+      event.preventDefault();
+
       if (!canToggleOnClick()) return;
 
       // During a close animation (open=true, status=ending), treat
