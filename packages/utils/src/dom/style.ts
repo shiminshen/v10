@@ -56,3 +56,47 @@ export function resolveCSSLength(el: Element, value: string): number {
 
   return Number.isFinite(pixels) ? pixels : parsed;
 }
+
+/**
+ * Parses the horizontal component of CSS `translate` (first whitespace-separated component of the shorthand value)
+ * as a percentage along the horizontal axis (either explicit `%`, or px as a percent of `widthPx`).
+ */
+export function resolveTranslateXPercent(translate: string, widthPx: number): number | null {
+  const [component = ''] = translate.trim().split(/\s+/);
+
+  if (!component || component === 'none') return null;
+  if (component.endsWith('%')) return Number.parseFloat(component);
+  if (!component.endsWith('px')) return null;
+  if (widthPx === 0) return null;
+
+  return (Number.parseFloat(component) / widthPx) * 100;
+}
+
+/** Parses comma-separated CSS time tokens (`<time>#`) used by `transition-*` into milliseconds. */
+export function parseCSSTimeList(value: string): number[] {
+  return value.split(',').map((part) => {
+    const time = part.trim();
+
+    if (time.endsWith('ms')) return Number.parseFloat(time);
+    if (time.endsWith('s')) return Number.parseFloat(time) * 1000;
+
+    return 0;
+  });
+}
+
+/** Longest pairwise sum of computed `transition-duration` and `transition-delay` (milliseconds). */
+export function getMaxCSSTransitionTime(element: HTMLElement): number {
+  const style = getComputedStyle(element);
+  const durations = parseCSSTimeList(style.transitionDuration);
+  const delays = parseCSSTimeList(style.transitionDelay);
+  const count = Math.max(durations.length, delays.length);
+  let max = 0;
+
+  for (let i = 0; i < count; i++) {
+    const duration = durations[i % durations.length] ?? 0;
+    const delay = delays[i % delays.length] ?? 0;
+    max = Math.max(max, duration + delay);
+  }
+
+  return max;
+}

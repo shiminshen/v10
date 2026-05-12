@@ -263,6 +263,33 @@ function FocusOutFixture({ onRootOpenChange }: { onRootOpenChange: NonNullable<M
   );
 }
 
+function SubmenuFocusOutFixture({
+  onRootOpenChange,
+}: {
+  onRootOpenChange: NonNullable<MenuRoot.Props['onOpenChange']>;
+}) {
+  return (
+    <>
+      <MenuRoot defaultOpen onOpenChange={onRootOpenChange}>
+        <MenuTrigger>Settings</MenuTrigger>
+        <MenuContent data-testid="root-content">
+          <MenuView data-testid="root-view">
+            <MenuRoot>
+              <MenuTrigger data-testid="submenu-trigger">Quality</MenuTrigger>
+              <MenuContent data-testid="submenu-content">
+                <MenuItem data-testid="submenu-item">Auto</MenuItem>
+              </MenuContent>
+            </MenuRoot>
+          </MenuView>
+        </MenuContent>
+      </MenuRoot>
+      <button type="button" data-testid="outside">
+        Outside
+      </button>
+    </>
+  );
+}
+
 describe('MenuContent', () => {
   it('marks the root view inactive while a submenu view is active', async () => {
     render(<SubmenuFixture />);
@@ -654,5 +681,41 @@ describe('MenuContent', () => {
     await waitFor(() => {
       expect(onRootOpenChange).toHaveBeenCalledWith(false, expect.objectContaining({ reason: 'blur' }));
     });
+  });
+
+  it('closes when focus moves outside while a submenu is open', async () => {
+    const onRootOpenChange = vi.fn();
+
+    render(<SubmenuFocusOutFixture onRootOpenChange={onRootOpenChange} />);
+    onRootOpenChange.mockClear();
+
+    fireEvent.click(screen.getByTestId('submenu-trigger'));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('submenu-content')).not.toBeNull();
+    });
+
+    fireEvent.focusOut(screen.getByTestId('root-content'), { relatedTarget: screen.getByTestId('outside') });
+
+    await waitFor(() => {
+      expect(onRootOpenChange).toHaveBeenCalledWith(false, expect.objectContaining({ reason: 'blur' }));
+    });
+  });
+
+  it('stays open when focus moves within the popup while a submenu is open', async () => {
+    const onRootOpenChange = vi.fn();
+
+    render(<SubmenuFocusOutFixture onRootOpenChange={onRootOpenChange} />);
+    onRootOpenChange.mockClear();
+
+    fireEvent.click(screen.getByTestId('submenu-trigger'));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('submenu-content')).not.toBeNull();
+    });
+
+    fireEvent.focusOut(screen.getByTestId('root-content'), { relatedTarget: screen.getByTestId('submenu-item') });
+
+    expect(onRootOpenChange).not.toHaveBeenCalledWith(false, expect.anything());
   });
 });

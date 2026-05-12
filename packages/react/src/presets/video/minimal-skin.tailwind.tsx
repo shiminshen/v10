@@ -217,9 +217,7 @@ function PlaybackRateSettingsSubmenuContent(): ReactNode {
             </span>
           </div>
         )}
-      >
-        {null}
-      </PlaybackRateMenu.Trigger>
+      />
       <PlaybackRateMenu.Content className={menu.panel}>
         <Menu.Back className={menu.back}>
           <MenuChevron flipped />
@@ -259,9 +257,7 @@ function CaptionsSettingsSubmenuContent(): ReactNode {
             </span>
           </div>
         )}
-      >
-        {null}
-      </CaptionsMenu.Trigger>
+      />
       <CaptionsMenu.Content className={menu.panel}>
         <Menu.Back className={menu.back}>
           <MenuChevron flipped />

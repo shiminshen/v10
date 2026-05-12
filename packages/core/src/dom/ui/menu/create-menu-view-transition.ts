@@ -1,4 +1,6 @@
 import { createState, type State } from '@videojs/store';
+import type { DoubleAnimationFrameHandles } from '@videojs/utils/dom';
+import { resetDoubleAnimationFrameHandles, scheduleDoubleAnimationFrame } from '@videojs/utils/dom';
 import { getTransitionStyleAttrs, type TransitionStyleAttrs } from '../../../core/ui/transition';
 import { forceLayout } from '../../utils/layout';
 import { waitForAnimations as waitForElementAnimations } from '../transition';
@@ -90,18 +92,19 @@ export function createMenuViewTransition(options: MenuViewTransitionOptions = {}
 
   let element: HTMLElement | null = null;
   let transitionId = 0;
-  let raf1 = 0;
-  let raf2 = 0;
+  const enterRafs: DoubleAnimationFrameHandles = { first: 0, second: 0 };
+  let exitRaf = 0;
   let focusRaf = 0;
   let scheduledTransitionId = 0;
   let scheduledPhase: MenuViewTransitionPhase | null = null;
 
   function cancelFrames(): void {
-    cancelAnimationFrame(raf1);
-    cancelAnimationFrame(raf2);
+    cancelAnimationFrame(enterRafs.first);
+    cancelAnimationFrame(enterRafs.second);
+    cancelAnimationFrame(exitRaf);
     cancelAnimationFrame(focusRaf);
-    raf1 = 0;
-    raf2 = 0;
+    resetDoubleAnimationFrameHandles(enterRafs);
+    exitRaf = 0;
     focusRaf = 0;
     scheduledTransitionId = 0;
     scheduledPhase = null;
@@ -126,12 +129,10 @@ export function createMenuViewTransition(options: MenuViewTransitionOptions = {}
   function scheduleEnterComplete(currentTransitionId: number, currentElement: HTMLElement): void {
     forceLayout(currentElement);
 
-    raf1 = requestAnimationFrame(() => {
-      if (currentTransitionId !== transitionId) return;
-
-      raf2 = requestAnimationFrame(() => {
-        if (currentTransitionId !== transitionId) return;
-
+    scheduleDoubleAnimationFrame(
+      enterRafs,
+      () => currentTransitionId === transitionId,
+      () => {
         forceLayout(currentElement);
         input.patch({ phase: 'active' });
 
@@ -150,14 +151,14 @@ export function createMenuViewTransition(options: MenuViewTransitionOptions = {}
             input.patch({ transitioning: false });
           }
         );
-      });
-    });
+      }
+    );
   }
 
   function scheduleExitComplete(currentTransitionId: number, currentElement: HTMLElement): void {
     forceLayout(currentElement);
 
-    raf1 = requestAnimationFrame(async () => {
+    exitRaf = requestAnimationFrame(async () => {
       await waitForAnimations(currentElement);
 
       if (currentTransitionId !== transitionId) return;

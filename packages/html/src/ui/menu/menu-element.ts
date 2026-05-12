@@ -327,8 +327,6 @@ export class MenuElement extends MediaElement {
   };
 
   #handleContentFocusOut = (event: UIFocusEvent): void => {
-    if (!this.#parentCtx.value && this.#menu?.navigationInput.current.stack.length) return;
-
     this.#menu?.contentProps.onFocusOut(event);
   };
 

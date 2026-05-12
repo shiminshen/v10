@@ -401,6 +401,55 @@ describe('MenuElement', () => {
     );
   });
 
+  it('closes when focus moves outside the root menu while a nested menu is active', async () => {
+    const root = createElement(MenuElement);
+    const rootView = createElement(MenuViewElement);
+    const trigger = createElement(MenuItemElement);
+    const child = createElement(MenuElement);
+    const item = createElement(MenuItemElement);
+    const outside = document.createElement('button');
+    const onOpenChange = vi.fn();
+
+    root.open = true;
+    trigger.id = 'child-trigger';
+    trigger.commandfor = 'child-menu';
+    child.id = 'child-menu';
+    item.textContent = 'Auto';
+
+    root.addEventListener('open-change', onOpenChange);
+    rootView.append(trigger);
+    child.append(item);
+    root.append(rootView, child);
+    document.body.append(root, outside);
+
+    await root.updateComplete;
+    await rootView.updateComplete;
+    await trigger.updateComplete;
+    await child.updateComplete;
+    await item.updateComplete;
+
+    onOpenChange.mockClear();
+    trigger.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+
+    await root.updateComplete;
+    await child.updateComplete;
+    await waitForAssertion(() => {
+      expect(child.hasAttribute('data-open')).toBe(true);
+    });
+
+    root.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: outside }));
+
+    await root.updateComplete;
+    await child.updateComplete;
+    await waitForAssertion(() => {
+      expect(root.open).toBe(false);
+    });
+
+    expect(onOpenChange).toHaveBeenCalledWith(
+      expect.objectContaining({ detail: expect.objectContaining({ open: false, reason: 'blur' }) })
+    );
+  });
+
   it('returns to the parent view without closing the root menu when Escape is pressed in a nested menu', async () => {
     const root = createElement(MenuElement);
     const rootView = createElement(MenuViewElement);

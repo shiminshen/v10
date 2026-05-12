@@ -1,4 +1,5 @@
 import { createState, type State } from '@videojs/store';
+import { getMaxCSSTransitionTime } from '@videojs/utils/dom';
 import { noop } from '@videojs/utils/function';
 import type { TransitionState } from '../../core/ui/transition';
 
@@ -142,31 +143,4 @@ export function waitForAnimations(
   if (animations.length === 0) return transitionPromise;
 
   return Promise.all([transitionPromise, ...animations.map((a) => a.finished)]).then(noop, noop);
-}
-
-function getMaxCSSTransitionTime(element: HTMLElement): number {
-  const style = getComputedStyle(element);
-  const durations = parseCSSTimeList(style.transitionDuration);
-  const delays = parseCSSTimeList(style.transitionDelay);
-  const count = Math.max(durations.length, delays.length);
-  let max = 0;
-
-  for (let i = 0; i < count; i++) {
-    const duration = durations[i % durations.length] ?? 0;
-    const delay = delays[i % delays.length] ?? 0;
-    max = Math.max(max, duration + delay);
-  }
-
-  return max;
-}
-
-function parseCSSTimeList(value: string): number[] {
-  return value.split(',').map((part) => {
-    const time = part.trim();
-
-    if (time.endsWith('ms')) return Number.parseFloat(time);
-    if (time.endsWith('s')) return Number.parseFloat(time) * 1000;
-
-    return 0;
-  });
 }

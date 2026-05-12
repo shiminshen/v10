@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { resolveCSSLength } from '../style';
+import { getMaxCSSTransitionTime, parseCSSTimeList, resolveCSSLength, resolveTranslateXPercent } from '../style';
 
 describe('resolveCSSLength', () => {
   it('Returns px values directly', () => {
@@ -97,5 +97,72 @@ describe('resolveCSSLength', () => {
     expect(resolveCSSLength(el, 'calc(1px - 1px)')).toBe(0);
 
     createElementSpy.mockRestore();
+  });
+});
+
+describe('resolveTranslateXPercent', () => {
+  it('Parses horizontal percent from translate shorthand', () => {
+    expect(resolveTranslateXPercent('-100%', 320)).toBe(-100);
+    expect(resolveTranslateXPercent('  50%', 320)).toBe(50);
+  });
+
+  it('Maps px horizontal offset against width basis', () => {
+    expect(resolveTranslateXPercent('-320px', 320)).toBe(-100);
+    expect(resolveTranslateXPercent('160px', 320)).toBe(50);
+  });
+
+  it('Extracts X from translate X Y form', () => {
+    expect(resolveTranslateXPercent('10px 0', 100)).toBe(10);
+  });
+
+  it('Returns null for missing or incompatible values', () => {
+    expect(resolveTranslateXPercent('none', 100)).toBeNull();
+    expect(resolveTranslateXPercent('', 100)).toBeNull();
+    expect(resolveTranslateXPercent('-1em', 100)).toBeNull();
+    expect(resolveTranslateXPercent('-1px', 0)).toBeNull();
+  });
+});
+
+describe('parseCSSTimeList', () => {
+  it('Converts seconds and milliseconds', () => {
+    expect(parseCSSTimeList('0.2s, 150ms')).toEqual([200, 150]);
+  });
+
+  it('Returns 0 for unknown tokens', () => {
+    expect(parseCSSTimeList('auto,')).toEqual([0, 0]);
+  });
+});
+
+describe('getMaxCSSTransitionTime', () => {
+  it('Returns longest duration plus delay pairwise', () => {
+    const el = document.createElement('div');
+
+    vi.spyOn(globalThis, 'getComputedStyle').mockImplementation(
+      () =>
+        ({
+          transitionDuration: '50ms, 200ms',
+          transitionDelay: '100ms, 50ms',
+        }) as CSSStyleDeclaration
+    );
+
+    expect(getMaxCSSTransitionTime(el)).toBe(250);
+
+    vi.restoreAllMocks();
+  });
+
+  it('Repeats shorter delay list when durations have more entries', () => {
+    const el = document.createElement('div');
+
+    vi.spyOn(globalThis, 'getComputedStyle').mockImplementation(
+      () =>
+        ({
+          transitionDuration: '100ms, 300ms',
+          transitionDelay: '400ms',
+        }) as CSSStyleDeclaration
+    );
+
+    expect(getMaxCSSTransitionTime(el)).toBe(700);
+
+    vi.restoreAllMocks();
   });
 });

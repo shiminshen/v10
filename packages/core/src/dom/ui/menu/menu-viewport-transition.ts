@@ -1,3 +1,10 @@
+import {
+  afterDoubleAnimationFrame,
+  type DoubleAnimationFrameHandles,
+  resetDoubleAnimationFrameHandles,
+  resolveTranslateXPercent,
+  scheduleDoubleAnimationFrame,
+} from '@videojs/utils/dom';
 import { getTransitionStyleAttrs, TransitionDataAttrs, type TransitionStyleAttrs } from '../../../core/ui/transition';
 import { forceLayout } from '../../utils/layout';
 import { waitForAnimations } from '../transition';
@@ -65,8 +72,7 @@ interface MenuViewportTransitionState {
   phaseKeys: WeakMap<HTMLElement, string>;
   rootSize: MenuViewSize | null;
   rootTransitionId: number;
-  rootRaf1: number;
-  rootRaf2: number;
+  rootStartingRafs: DoubleAnimationFrameHandles;
   viewportTransitionId: number;
   viewportTransitioning: boolean;
 }
@@ -131,8 +137,7 @@ function getViewportTransitionState(content: HTMLElement): MenuViewportTransitio
       phaseKeys: new WeakMap(),
       rootSize: null,
       rootTransitionId: 0,
-      rootRaf1: 0,
-      rootRaf2: 0,
+      rootStartingRafs: { first: 0, second: 0 },
       viewportTransitionId: 0,
       viewportTransitioning: false,
     };
@@ -307,10 +312,9 @@ function clearMenuViewTransitionAttrs(view: HTMLElement): void {
 }
 
 function cancelRootViewTransitionFrames(state: MenuViewportTransitionState): void {
-  cancelAnimationFrame(state.rootRaf1);
-  cancelAnimationFrame(state.rootRaf2);
-  state.rootRaf1 = 0;
-  state.rootRaf2 = 0;
+  cancelAnimationFrame(state.rootStartingRafs.first);
+  cancelAnimationFrame(state.rootStartingRafs.second);
+  resetDoubleAnimationFrameHandles(state.rootStartingRafs);
 }
 
 function startRootViewTransition(
@@ -361,17 +365,14 @@ function scheduleViewportTransitionAttrsClear(
   state: MenuViewportTransitionState,
   transitionId: number
 ): void {
-  requestAnimationFrame(() => {
-    if (state.viewportTransitionId !== transitionId) return;
-
-    requestAnimationFrame(() => {
-      if (state.viewportTransitionId !== transitionId) return;
-
+  afterDoubleAnimationFrame(
+    () => state.viewportTransitionId === transitionId,
+    () => {
       waitForAnimations(content, { includeCSSTransitions: true }).then(() => {
         clearViewportTransition(content, state, transitionId);
       });
-    });
-  });
+    }
+  );
 }
 
 function scheduleRootViewTransitionAttrsClear(
@@ -396,19 +397,16 @@ function scheduleRootViewTransitionAttrsClear(
     requestAnimationFrame(clearWhenExitIsVisuallyComplete);
   }
 
-  requestAnimationFrame(() => {
-    if (state.rootTransitionId !== transitionId) return;
-
-    requestAnimationFrame(() => {
-      if (state.rootTransitionId !== transitionId) return;
-
+  afterDoubleAnimationFrame(
+    () => state.rootTransitionId === transitionId,
+    () => {
       clearWhenExitIsVisuallyComplete();
 
       waitForAnimations(rootView, { includeCSSTransitions: true }).then(() => {
         clear();
       });
-    });
-  });
+    }
+  );
 }
 
 function isMenuViewExitVisuallyComplete(view: HTMLElement): boolean {
@@ -419,23 +417,9 @@ function isMenuViewExitVisuallyComplete(view: HTMLElement): boolean {
     return true;
   }
 
-  const translate = getTranslateXPercent(style.getPropertyValue('translate'), view);
+  const translate = resolveTranslateXPercent(style.getPropertyValue('translate'), view.getBoundingClientRect().width);
 
   return translate !== null && Math.abs(translate) >= MENU_VIEW_EXIT_COMPLETE_THRESHOLD;
-}
-
-function getTranslateXPercent(translate: string, view: HTMLElement): number | null {
-  const [x = ''] = translate.trim().split(/\s+/);
-
-  if (!x || x === 'none') return null;
-  if (x.endsWith('%')) return Number.parseFloat(x);
-  if (!x.endsWith('px')) return null;
-
-  const width = view.getBoundingClientRect().width;
-
-  if (width === 0) return null;
-
-  return (Number.parseFloat(x) / width) * 100;
 }
 
 function scheduleRootViewStartingStyleClear(
@@ -443,17 +427,13 @@ function scheduleRootViewStartingStyleClear(
   state: MenuViewportTransitionState,
   transitionId: number
 ): void {
-  state.rootRaf1 = requestAnimationFrame(() => {
-    if (state.rootTransitionId !== transitionId) return;
-
-    state.rootRaf1 = 0;
-    state.rootRaf2 = requestAnimationFrame(() => {
-      if (state.rootTransitionId !== transitionId) return;
-
-      state.rootRaf2 = 0;
+  scheduleDoubleAnimationFrame(
+    state.rootStartingRafs,
+    () => state.rootTransitionId === transitionId,
+    () => {
       rootView.removeAttribute(TransitionDataAttrs.transitionStarting);
-    });
-  });
+    }
+  );
 }
 
 function prepareEnteringMenuView(

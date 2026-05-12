@@ -202,8 +202,6 @@ export const MenuContent = forwardRef<HTMLDivElement, MenuContentProps>(function
   const handleRootMenuBlur = useCallback(
     (event: React.FocusEvent<HTMLDivElement>) => {
       (onBlur as React.FocusEventHandler<HTMLDivElement> | undefined)?.(event);
-      if (menu.navigationInput.current.stack.length) return;
-
       menu.contentProps.onFocusOut(toUIFocusEvent(event));
     },
     [onBlur, menu]

@@ -81,6 +81,7 @@ export const MenuTrigger = forwardRef<HTMLButtonElement | HTMLDivElement, MenuTr
       (onClick as React.MouseEventHandler<HTMLDivElement> | undefined)?.(event);
       if (event.button !== 0) return;
       openSubMenu();
+      event.preventDefault();
     },
     [onClick, openSubMenu]
   );
@@ -94,16 +95,6 @@ export const MenuTrigger = forwardRef<HTMLButtonElement | HTMLDivElement, MenuTr
       }
     },
     [onKeyDown, openSubMenu]
-  );
-
-  const handleSubMenuPointerDown = useCallback(
-    (event: React.PointerEvent<HTMLDivElement>) => {
-      if (event.button !== 0 || disabled) return;
-
-      openSubMenu();
-      event.preventDefault();
-    },
-    [disabled, openSubMenu]
   );
 
   const handlePointerEnter = useCallback(() => {
@@ -143,7 +134,6 @@ export const MenuTrigger = forwardRef<HTMLButtonElement | HTMLDivElement, MenuTr
             onClick: handleSubMenuClick,
             onKeyDownCapture: preventMenuKeyDefault,
             onKeyDown: handleSubMenuKeyDown,
-            onPointerDown: handleSubMenuPointerDown,
             onPointerEnter: handlePointerEnter,
           },
           elementProps,
