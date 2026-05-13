@@ -58,6 +58,8 @@ export function createTransition(): TransitionApi {
       element = el;
     }
 
+    const animationTarget = element;
+
     state.patch({ active: true, status: 'starting', transitioning: true });
 
     return new Promise<void>((resolve) => {
@@ -67,7 +69,7 @@ export function createTransition(): TransitionApi {
           rafId2 = 0;
           if (destroyed || currentTransitionId !== transitionId || !state.current.active) return resolve();
           state.patch({ status: 'idle' });
-          waitForAnimations(element).finally(() => {
+          waitForAnimations(animationTarget).finally(() => {
             if (destroyed || currentTransitionId !== transitionId || !state.current.active) return resolve();
             state.patch({ transitioning: false });
             resolve();

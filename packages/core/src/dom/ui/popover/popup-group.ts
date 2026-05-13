@@ -16,6 +16,14 @@ export interface PopupGroup {
 let sharedMenuPopupGroup: PopupGroup | null = null;
 
 /**
+ * Test-only: discard the lazy document-wide group so the next `getSharedMenuPopupGroup()` is fresh.
+ * Avoids open-state leakage between tests that use the default group.
+ */
+export function resetSharedMenuPopupGroupForTests(): void {
+  sharedMenuPopupGroup = null;
+}
+
+/**
  * Document-wide menu coordination: exclusive open + peer-trigger outside-dismiss skipping.
  * Used when a menu's `group` resolver is omitted or returns `undefined` (no player or shell group).
  */
