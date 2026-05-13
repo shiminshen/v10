@@ -322,6 +322,20 @@ export function createMenu(options: MenuOptions): MenuApi {
     },
   };
 
+  function handleTriggerClick(event: UIEvent): void {
+    const { active, status } = popover.input.current;
+
+    // Popover cancels an in-flight close when the trigger is clicked during
+    // `status === 'ending'`. Menus use the same trigger to dismiss; reopening
+    // here leaves the layer half-closed and breaks a subsequent toggle (e.g. Safari).
+    if (active && status === 'ending') {
+      event.preventDefault();
+      return;
+    }
+
+    popover.triggerProps.onClick(event);
+  }
+
   function handleTriggerKeyDown(event: UIKeyboardEvent): void {
     const input = popover.input.current;
 
@@ -385,10 +399,10 @@ export function createMenu(options: MenuOptions): MenuApi {
   return {
     input: popover.input as State<MenuInput>,
     navigationInput: navigationState,
-    // Menus open/close on trigger click — forward the popover's click handler.
-    // Hover and focus-based open are disabled (openOnHover not set).
+    // Menus open/close on trigger click — delegate to popover except during
+    // close animation (see `handleTriggerClick`). Hover/focus open are off.
     triggerProps: {
-      onClick: popover.triggerProps.onClick,
+      onClick: handleTriggerClick,
       onKeyDown: handleTriggerKeyDown,
     },
     contentProps,
