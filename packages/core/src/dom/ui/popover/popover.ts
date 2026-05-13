@@ -202,11 +202,21 @@ export function createPopover(options: PopoverOptions): PopoverApi {
 
       if (!canToggleOnClick()) return;
 
-      if (state.current.active) {
-        applyClose('click', event);
-      } else {
+      const { active, status } = state.current;
+
+      if (!active) {
         applyOpen('click', event);
+        return;
       }
+
+      // During the close animation `layer.close()` is a no-op; reopen cancels the close
+      // (see `createDismissLayer.open` when `status === 'ending'`).
+      if (status === 'ending') {
+        applyOpen('click', event);
+        return;
+      }
+
+      applyClose('click', event);
     },
 
     onPointerEnter(_event) {
