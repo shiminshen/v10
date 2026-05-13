@@ -41,6 +41,7 @@
     "dist"
   ],
   "scripts": {
+    "postinstall": "node -e \"process.env.CI || process.exit(1)\" || playwright install chromium",
     "build": "tsdown",
     "build:watch": "tsdown --watch ./src --no-clean",
     "dev": "pnpm run build:watch",
