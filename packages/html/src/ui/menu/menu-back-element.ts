@@ -49,8 +49,8 @@ export class MenuBackElement extends MediaElement {
         this,
         {
           onClick: () => {
-            // Pop to the parent menu view.
-            ctx.parentMenu?.pop();
+            const currentCtx = this.#ctx.value;
+            currentCtx?.parentMenu?.pop();
           },
           onPointerenter: () => {
             const currentCtx = this.#ctx.value;
