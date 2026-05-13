@@ -61,10 +61,10 @@ function renderCaptionsMenu({
 }
 
 function CaptionsMenuItems(): ReactNode {
-  const { options, setValue, value } = useCaptionsMenu();
+  const { menuSectionLabel, options, setValue, value } = useCaptionsMenu();
 
   return (
-    <Menu.RadioGroup value={value} onValueChange={setValue} label="Captions">
+    <Menu.RadioGroup value={value} onValueChange={setValue} label={menuSectionLabel}>
       {options.map((option) => (
         <Menu.RadioItem key={option.value} value={option.value} disabled={option.disabled}>
           {option.label}

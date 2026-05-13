@@ -97,10 +97,10 @@ function VolumePopover(): ReactNode {
 }
 
 function PlaybackRateMenuItems(): ReactNode {
-  const { options, setValue, value } = usePlaybackRateMenu();
+  const { options, setValue, value, radioGroupLabel } = usePlaybackRateMenu();
 
   return (
-    <Menu.RadioGroup className="media-menu__group" value={value} onValueChange={setValue} label="Playback rate">
+    <Menu.RadioGroup className="media-menu__group" value={value} onValueChange={setValue} label={radioGroupLabel}>
       {options.map((option) => (
         <Menu.RadioItem key={option.value} className="media-menu__item" value={option.value} disabled={option.disabled}>
           <span>{option.label}</span>
@@ -114,10 +114,10 @@ function PlaybackRateMenuItems(): ReactNode {
 }
 
 function CaptionsMenuItems(): ReactNode {
-  const { options, setValue, value } = useCaptionsMenu();
+  const { options, setValue, value, menuSectionLabel } = useCaptionsMenu();
 
   return (
-    <Menu.RadioGroup className="media-menu__group" value={value} onValueChange={setValue} label="Captions">
+    <Menu.RadioGroup className="media-menu__group" value={value} onValueChange={setValue} label={menuSectionLabel}>
       {options.map((option) => (
         <Menu.RadioItem key={option.value} className="media-menu__item" value={option.value} disabled={option.disabled}>
           <span>{option.label}</span>
@@ -143,7 +143,7 @@ function PlaybackRateSettingsSubmenu(): ReactNode {
 }
 
 function PlaybackRateSettingsSubmenuContent(): ReactNode {
-  const { options, state, value } = usePlaybackRateMenu();
+  const { menuSectionLabel, options, state, value } = usePlaybackRateMenu();
   const selectedLabel = options.find((option) => option.value === value)?.label ?? state.label;
 
   return (
@@ -152,7 +152,7 @@ function PlaybackRateSettingsSubmenuContent(): ReactNode {
         className="media-menu__item media-menu__item--submenu"
         render={(props) => (
           <div {...props}>
-            <span>Speed</span>
+            <span>{menuSectionLabel}</span>
             <span className="media-menu__hint">
               <span className="media-menu__hint-label">{selectedLabel}</span>
               <MenuChevron />
@@ -163,7 +163,7 @@ function PlaybackRateSettingsSubmenuContent(): ReactNode {
       <PlaybackRateMenu.Content className="media-menu__panel">
         <Menu.Back className="media-menu__back">
           <MenuChevron flipped />
-          Speed
+          {menuSectionLabel}
         </Menu.Back>
         <PlaybackRateMenuItems />
       </PlaybackRateMenu.Content>
@@ -180,7 +180,7 @@ function CaptionsSettingsSubmenu(): ReactNode {
 }
 
 function CaptionsSettingsSubmenuContent(): ReactNode {
-  const { availability, options, state, value } = useCaptionsMenu();
+  const { availability, menuSectionLabel, options, state, value } = useCaptionsMenu();
 
   if (availability !== 'available') return null;
 
@@ -192,7 +192,7 @@ function CaptionsSettingsSubmenuContent(): ReactNode {
         className="media-menu__item media-menu__item--submenu"
         render={(props) => (
           <div {...props}>
-            <span>Captions</span>
+            <span>{menuSectionLabel}</span>
             <span className="media-menu__hint">
               <span className="media-menu__hint-label">{selectedLabel}</span>
               <MenuChevron />
@@ -203,7 +203,7 @@ function CaptionsSettingsSubmenuContent(): ReactNode {
       <CaptionsMenu.Content className="media-menu__panel">
         <Menu.Back className="media-menu__back">
           <MenuChevron flipped />
-          Captions
+          {menuSectionLabel}
         </Menu.Back>
         <CaptionsMenuItems />
       </CaptionsMenu.Content>
