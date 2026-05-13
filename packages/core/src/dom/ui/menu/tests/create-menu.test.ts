@@ -476,6 +476,41 @@ describe('createMenu', () => {
       expect(menu.input.current.status).not.toBe('ending');
     });
 
+    it('does not focus the trigger after deferred reopen when the close animation completes', async () => {
+      const { menu } = createTestMenu();
+      const event = { preventDefault: vi.fn(), stopPropagation: vi.fn() } as unknown as UIEvent;
+      const trigger = document.createElement('button');
+      document.body.appendChild(trigger);
+      const item = addItem('Alpha');
+      menu.registerItem(item);
+
+      menu.setTriggerElement(trigger);
+      const focusSpy = vi.spyOn(trigger, 'focus');
+
+      menu.open();
+      menu.close();
+      menu.triggerProps.onClick(event);
+
+      await vi.waitFor(() => {
+        expect(menu.input.current.active).toBe(true);
+        expect(menu.input.current.status).not.toBe('ending');
+      });
+
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            setTimeout(resolve, 0);
+          });
+        });
+      });
+
+      expect(focusSpy).not.toHaveBeenCalled();
+      expect(item.hasAttribute(MenuItemDataAttrs.highlighted)).toBe(true);
+
+      menu.destroy();
+      trigger.remove();
+    });
+
     it('handles navigation keys while the open trigger has focus', () => {
       const { menu } = createTestMenu();
       const element = addItem('Auto');

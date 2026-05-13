@@ -304,6 +304,11 @@ export function createMenu(options: MenuOptions): MenuApi {
         const element = triggerElement;
 
         const restoreTriggerFocus = (): void => {
+          // Close completion runs before a deferred reopen from a trigger click during
+          // `ending` (see `createPopover`); the reopen is chained on the same close promise.
+          // Without this guard, the scheduled focus runs after the menu has reopened and
+          // highlights an item — pulling focus to the trigger and blur-closing the menu.
+          if (popover.input.current.active) return;
           element?.focus();
         };
 
