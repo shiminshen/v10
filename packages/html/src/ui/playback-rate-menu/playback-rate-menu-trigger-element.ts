@@ -6,17 +6,20 @@ import { playerContext } from '../../player/context';
 import { PlayerController } from '../../player/player-controller';
 import { MediaElement } from '../media-element';
 import { SubmenuTriggerController } from '../menu/submenu-trigger-controller';
+import { syncSectionLabelParts } from '../menu/sync-section-label-parts';
 
 export class PlaybackRateMenuTriggerElement extends MediaElement {
   static readonly tagName = 'media-playback-rate-menu-trigger';
 
   static override properties = {
     label: { type: String },
+    menuSectionLabel: { type: String, attribute: 'menu-section-label' },
     disabled: { type: Boolean },
     commandfor: { type: String },
-  } satisfies PropertyDeclarationMap<'label' | 'disabled' | 'commandfor'>;
+  } satisfies PropertyDeclarationMap<'label' | 'menuSectionLabel' | 'disabled' | 'commandfor'>;
 
   label = '';
+  menuSectionLabel = PlaybackRateMenuCore.defaultProps.menuSectionLabel;
   disabled = false;
   commandfor: string | undefined = undefined;
   formatRate = PlaybackRateMenuCore.defaultProps.formatRate;
@@ -65,6 +68,7 @@ export class PlaybackRateMenuTriggerElement extends MediaElement {
     const submenuAttrs = this.#submenuTrigger.getAttrs();
 
     this.#syncLabel(this.#core.getRateLabel(state.rate));
+    syncSectionLabelParts(this, this.#core.getMenuSectionLabel());
     this.#submenuTrigger.syncRegistration(Boolean(submenuAttrs));
 
     if (submenuAttrs) {

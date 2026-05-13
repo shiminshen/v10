@@ -6,6 +6,7 @@ import { playerContext } from '../../player/context';
 import { PlayerController } from '../../player/player-controller';
 import { MediaElement } from '../media-element';
 import { SubmenuTriggerController } from '../menu/submenu-trigger-controller';
+import { syncSectionLabelParts } from '../menu/sync-section-label-parts';
 
 export class CaptionsMenuTriggerElement extends MediaElement {
   static readonly tagName = 'media-captions-menu-trigger';
@@ -13,12 +14,14 @@ export class CaptionsMenuTriggerElement extends MediaElement {
   static override properties = {
     label: { type: String },
     offLabel: { type: String, attribute: 'off-label' },
+    menuSectionLabel: { type: String, attribute: 'menu-section-label' },
     disabled: { type: Boolean },
     commandfor: { type: String },
-  } satisfies PropertyDeclarationMap<'label' | 'offLabel' | 'disabled' | 'commandfor'>;
+  } satisfies PropertyDeclarationMap<'label' | 'offLabel' | 'menuSectionLabel' | 'disabled' | 'commandfor'>;
 
   label = '';
   offLabel = CaptionsMenuCore.defaultProps.offLabel;
+  menuSectionLabel = CaptionsMenuCore.defaultProps.menuSectionLabel;
   disabled = false;
   commandfor: string | undefined = undefined;
   formatTrack = CaptionsMenuCore.defaultProps.formatTrack;
@@ -67,6 +70,7 @@ export class CaptionsMenuTriggerElement extends MediaElement {
     const submenuAttrs = this.#submenuTrigger.getAttrs();
 
     this.#syncLabel(state);
+    syncSectionLabelParts(this, this.#core.getMenuSectionLabel());
     this.#submenuTrigger.syncRegistration(Boolean(submenuAttrs) && state.availability === 'available');
 
     if (submenuAttrs) {

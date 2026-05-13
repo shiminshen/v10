@@ -143,7 +143,7 @@ function PlaybackRateSettingsSubmenu(): ReactNode {
 }
 
 function PlaybackRateSettingsSubmenuContent(): ReactNode {
-  const { menuSectionLabel, options, state, value } = usePlaybackRateMenu();
+  const { options, state, value } = usePlaybackRateMenu();
   const selectedLabel = options.find((option) => option.value === value)?.label ?? state.label;
 
   return (
@@ -152,7 +152,7 @@ function PlaybackRateSettingsSubmenuContent(): ReactNode {
         className="media-menu__item media-menu__item--submenu"
         render={(props) => (
           <div {...props}>
-            <span>{menuSectionLabel}</span>
+            <PlaybackRateMenu.SectionLabel />
             <span className="media-menu__hint">
               <span className="media-menu__hint-label">{selectedLabel}</span>
               <MenuChevron />
@@ -163,7 +163,7 @@ function PlaybackRateSettingsSubmenuContent(): ReactNode {
       <PlaybackRateMenu.Content className="media-menu__panel">
         <Menu.Back className="media-menu__back">
           <MenuChevron flipped />
-          {menuSectionLabel}
+          <PlaybackRateMenu.SectionLabel />
         </Menu.Back>
         <PlaybackRateMenuItems />
       </PlaybackRateMenu.Content>
@@ -180,7 +180,7 @@ function CaptionsSettingsSubmenu(): ReactNode {
 }
 
 function CaptionsSettingsSubmenuContent(): ReactNode {
-  const { availability, menuSectionLabel, options, state, value } = useCaptionsMenu();
+  const { availability, options, state, value } = useCaptionsMenu();
 
   if (availability !== 'available') return null;
 
@@ -192,7 +192,7 @@ function CaptionsSettingsSubmenuContent(): ReactNode {
         className="media-menu__item media-menu__item--submenu"
         render={(props) => (
           <div {...props}>
-            <span>{menuSectionLabel}</span>
+            <CaptionsMenu.SectionLabel />
             <span className="media-menu__hint">
               <span className="media-menu__hint-label">{selectedLabel}</span>
               <MenuChevron />
@@ -203,7 +203,7 @@ function CaptionsSettingsSubmenuContent(): ReactNode {
       <CaptionsMenu.Content className="media-menu__panel">
         <Menu.Back className="media-menu__back">
           <MenuChevron flipped />
-          {menuSectionLabel}
+          <CaptionsMenu.SectionLabel />
         </Menu.Back>
         <CaptionsMenuItems />
       </CaptionsMenu.Content>

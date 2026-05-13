@@ -201,7 +201,7 @@ function PlaybackRateSettingsSubmenu(): ReactNode {
 }
 
 function PlaybackRateSettingsSubmenuContent(): ReactNode {
-  const { menuSectionLabel, options, state, value } = usePlaybackRateMenu();
+  const { options, state, value } = usePlaybackRateMenu();
   const selectedLabel = options.find((option) => option.value === value)?.label ?? state.label;
 
   return (
@@ -210,7 +210,7 @@ function PlaybackRateSettingsSubmenuContent(): ReactNode {
         className={menu.item}
         render={(props) => (
           <div {...props}>
-            <span>{menuSectionLabel}</span>
+            <PlaybackRateMenu.SectionLabel />
             <span className={menu.hint}>
               <span className={menu.hintLabel}>{selectedLabel}</span>
               <MenuChevron />
@@ -221,7 +221,7 @@ function PlaybackRateSettingsSubmenuContent(): ReactNode {
       <PlaybackRateMenu.Content className={menu.panel}>
         <Menu.Back className={menu.back}>
           <MenuChevron flipped />
-          {menuSectionLabel}
+          <PlaybackRateMenu.SectionLabel />
         </Menu.Back>
         <PlaybackRateMenuItems />
       </PlaybackRateMenu.Content>
@@ -238,7 +238,7 @@ function CaptionsSettingsSubmenu(): ReactNode {
 }
 
 function CaptionsSettingsSubmenuContent(): ReactNode {
-  const { availability, menuSectionLabel, options, state, value } = useCaptionsMenu();
+  const { availability, options, state, value } = useCaptionsMenu();
 
   if (availability !== 'available') return null;
 
@@ -250,7 +250,7 @@ function CaptionsSettingsSubmenuContent(): ReactNode {
         className={menu.item}
         render={(props) => (
           <div {...props}>
-            <span>{menuSectionLabel}</span>
+            <CaptionsMenu.SectionLabel />
             <span className={menu.hint}>
               <span className={menu.hintLabel}>{selectedLabel}</span>
               <MenuChevron />
@@ -261,7 +261,7 @@ function CaptionsSettingsSubmenuContent(): ReactNode {
       <CaptionsMenu.Content className={menu.panel}>
         <Menu.Back className={menu.back}>
           <MenuChevron flipped />
-          {menuSectionLabel}
+          <CaptionsMenu.SectionLabel />
         </Menu.Back>
         <CaptionsMenuItems />
       </CaptionsMenu.Content>

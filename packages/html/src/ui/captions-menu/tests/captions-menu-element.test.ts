@@ -177,6 +177,29 @@ describe('CaptionsMenuElement', () => {
     expect(menu.getAttribute('data-availability')).toBe('available');
   });
 
+  it('syncs descendant section label parts', async () => {
+    const { menu, trigger } = setup();
+    const section = document.createElement('span');
+    section.setAttribute('data-part', 'section-label');
+    menu.insertBefore(section, menu.firstChild);
+
+    await waitForMenu(menu, trigger);
+
+    expect(section.textContent).toBe('Captions');
+  });
+
+  it('respects menu-section-label on the menu element for section label parts', async () => {
+    const { menu, trigger } = setup();
+    menu.setAttribute('menu-section-label', 'Subtitles');
+    const section = document.createElement('span');
+    section.setAttribute('data-part', 'section-label');
+    menu.insertBefore(section, menu.firstChild);
+
+    await waitForMenu(menu, trigger);
+
+    expect(section.textContent).toBe('Subtitles');
+  });
+
   it('renders radio items from a template', async () => {
     const { menu, options, trigger } = setup({
       template:
@@ -234,6 +257,29 @@ describe('CaptionsMenuTriggerElement', () => {
     expect(trigger.getAttribute('aria-label')).toBe('Captions CC');
     expect(trigger.getAttribute('data-active')).toBe('');
     expect(trigger.getAttribute('data-availability')).toBe('available');
+  });
+
+  it('syncs section label part in the trigger', async () => {
+    const { trigger } = setup();
+    const section = document.createElement('span');
+    section.setAttribute('data-part', 'section-label');
+    trigger.append(section);
+
+    await trigger.updateComplete;
+
+    expect(section.textContent).toBe('Captions');
+  });
+
+  it('respects menu-section-label on the trigger', async () => {
+    const { trigger } = setup();
+    trigger.setAttribute('menu-section-label', 'Subtitles');
+    const section = document.createElement('span');
+    section.setAttribute('data-part', 'section-label');
+    trigger.append(section);
+
+    await trigger.updateComplete;
+
+    expect(section.textContent).toBe('Subtitles');
   });
 
   it('prevents activation when no captions are available', async () => {

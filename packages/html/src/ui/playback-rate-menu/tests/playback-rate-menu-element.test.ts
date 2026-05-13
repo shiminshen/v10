@@ -169,6 +169,29 @@ describe('PlaybackRateMenuElement', () => {
     expect(menu.getAttribute('data-rate')).toBe('1.25');
   });
 
+  it('syncs descendant section label parts', async () => {
+    const { menu, trigger } = setup();
+    const section = document.createElement('span');
+    section.setAttribute('data-part', 'section-label');
+    menu.insertBefore(section, menu.firstChild);
+
+    await waitForMenu(menu, trigger);
+
+    expect(section.textContent).toBe('Speed');
+  });
+
+  it('respects menu-section-label on the menu element for section label parts', async () => {
+    const { menu, trigger } = setup();
+    menu.setAttribute('menu-section-label', 'Tempo');
+    const section = document.createElement('span');
+    section.setAttribute('data-part', 'section-label');
+    menu.insertBefore(section, menu.firstChild);
+
+    await waitForMenu(menu, trigger);
+
+    expect(section.textContent).toBe('Tempo');
+  });
+
   it('renders radio items from a template', async () => {
     const { menu, options, trigger } = setup({
       template:
@@ -219,6 +242,29 @@ describe('PlaybackRateMenuTriggerElement', () => {
     expect(trigger.getAttribute('role')).toBe('button');
     expect(trigger.getAttribute('aria-label')).toBe('Playback rate 2');
     expect(trigger.getAttribute('data-rate')).toBe('2');
+  });
+
+  it('syncs section label part in the trigger', async () => {
+    const { trigger } = setup({ playbackRate: 2 });
+    const section = document.createElement('span');
+    section.setAttribute('data-part', 'section-label');
+    trigger.append(section);
+
+    await trigger.updateComplete;
+
+    expect(section.textContent).toBe('Speed');
+  });
+
+  it('respects menu-section-label on the trigger', async () => {
+    const { trigger } = setup({ playbackRate: 2 });
+    trigger.setAttribute('menu-section-label', 'Tempo');
+    const section = document.createElement('span');
+    section.setAttribute('data-part', 'section-label');
+    trigger.append(section);
+
+    await trigger.updateComplete;
+
+    expect(section.textContent).toBe('Tempo');
   });
 
   it('prevents activation when there are no playback rates', async () => {

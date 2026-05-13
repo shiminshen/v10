@@ -140,6 +140,38 @@ describe('CaptionsMenu', () => {
     expect(screen.getByRole('menuitemradio', { name: 'EN captions' }).getAttribute('aria-checked')).toBe('true');
   });
 
+  it('renders SectionLabel with default menu section copy', () => {
+    const { Wrapper } = createPlayerWrapper(createTextTrackState() as unknown as Record<string, unknown>);
+
+    render(
+      <CaptionsMenu.Root defaultOpen>
+        <CaptionsMenu.Content>
+          <CaptionsMenu.SectionLabel data-testid="section-label" />
+        </CaptionsMenu.Content>
+      </CaptionsMenu.Root>,
+      { wrapper: Wrapper }
+    );
+
+    const section = screen.getByTestId('section-label');
+    expect(section.textContent).toBe('Captions');
+    expect(section.getAttribute('data-part')).toBe('section-label');
+  });
+
+  it('renders SectionLabel from menuSectionLabel on Root', () => {
+    const { Wrapper } = createPlayerWrapper(createTextTrackState() as unknown as Record<string, unknown>);
+
+    render(
+      <CaptionsMenu.Root defaultOpen menuSectionLabel="Subtitles">
+        <CaptionsMenu.Content>
+          <CaptionsMenu.SectionLabel data-testid="section-label" />
+        </CaptionsMenu.Content>
+      </CaptionsMenu.Root>,
+      { wrapper: Wrapper }
+    );
+
+    expect(screen.getByTestId('section-label').textContent).toBe('Subtitles');
+  });
+
   it('disables the trigger when no captions are available', () => {
     renderCaptionsMenu({
       textTrackList: [{ kind: 'metadata', label: 'thumbnails', language: '', mode: 'hidden' }],

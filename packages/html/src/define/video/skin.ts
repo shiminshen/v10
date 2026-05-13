@@ -1,4 +1,3 @@
-import { CaptionsMenuCore, PlaybackRateMenuCore } from '@videojs/core';
 import { renderIcon } from '@videojs/icons/render';
 import { createShadowStyle, createTemplate } from '@videojs/utils/dom';
 import { safeDefine } from '../safe-define';
@@ -107,14 +106,14 @@ function getTemplateHTML() {
               <media-menu-view class="media-menu__panel">
                 <div class="media-menu__group">
                   <media-playback-rate-menu-trigger id="settings-speed-trigger" commandfor="settings-speed-menu" class="media-menu__item media-menu__item--submenu">
-                    <span>${PlaybackRateMenuCore.defaultProps.menuSectionLabel}</span>
+                    <span data-part="section-label"></span>
                     <span class="media-menu__hint">
                       <span data-part="label" class="media-menu__hint-label"></span>
                       ${renderIcon('chevron', { class: 'media-icon media-menu__chevron' })}
                     </span>
                   </media-playback-rate-menu-trigger>
                   <media-captions-menu-trigger id="settings-captions-trigger" commandfor="settings-captions-menu" class="media-menu__item media-menu__item--submenu">
-                    <span>${CaptionsMenuCore.defaultProps.menuSectionLabel}</span>
+                    <span data-part="section-label"></span>
                     <span class="media-menu__hint">
                       <span data-part="label" class="media-menu__hint-label"></span>
                       ${renderIcon('chevron', { class: 'media-icon media-menu__chevron' })}
@@ -125,7 +124,7 @@ function getTemplateHTML() {
               <media-playback-rate-menu id="settings-speed-menu" class="media-menu__panel">
                 <media-menu-back label="Back to settings" class="media-menu__back">
                   ${renderIcon('chevron', { class: 'media-icon media-menu__chevron media-icon--flipped' })}
-                  ${PlaybackRateMenuCore.defaultProps.menuSectionLabel}
+                  <span data-part="section-label"></span>
                 </media-menu-back>
                 <media-playback-rate-options class="media-menu__group">
                   <template>
@@ -141,7 +140,7 @@ function getTemplateHTML() {
               <media-captions-menu id="settings-captions-menu" class="media-menu__panel">
                 <media-menu-back label="Back to settings" class="media-menu__back">
                   ${renderIcon('chevron', { class: 'media-icon media-menu__chevron media-icon--flipped' })}
-                  ${CaptionsMenuCore.defaultProps.menuSectionLabel}
+                  <span data-part="section-label"></span>
                 </media-menu-back>
                 <media-captions-options class="media-menu__group">
                   <template>

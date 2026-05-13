@@ -119,6 +119,38 @@ describe('PlaybackRateMenu', () => {
     expect(screen.getByRole('menuitemradio', { name: 'Normal' }).getAttribute('aria-checked')).toBe('true');
   });
 
+  it('renders SectionLabel with default menu section copy', () => {
+    const { Wrapper } = createPlayerWrapper({ playbackRates: [1, 1.5], playbackRate: 1 });
+
+    render(
+      <PlaybackRateMenu.Root defaultOpen>
+        <PlaybackRateMenu.Content>
+          <PlaybackRateMenu.SectionLabel data-testid="section-label" />
+        </PlaybackRateMenu.Content>
+      </PlaybackRateMenu.Root>,
+      { wrapper: Wrapper }
+    );
+
+    const section = screen.getByTestId('section-label');
+    expect(section.textContent).toBe('Speed');
+    expect(section.getAttribute('data-part')).toBe('section-label');
+  });
+
+  it('renders SectionLabel from menuSectionLabel on Root', () => {
+    const { Wrapper } = createPlayerWrapper({ playbackRates: [1, 1.5], playbackRate: 1 });
+
+    render(
+      <PlaybackRateMenu.Root defaultOpen menuSectionLabel="Tempo">
+        <PlaybackRateMenu.Content>
+          <PlaybackRateMenu.SectionLabel data-testid="section-label" />
+        </PlaybackRateMenu.Content>
+      </PlaybackRateMenu.Root>,
+      { wrapper: Wrapper }
+    );
+
+    expect(screen.getByTestId('section-label').textContent).toBe('Tempo');
+  });
+
   it('disables the trigger when there are no rates', () => {
     renderPlaybackRateMenu({ playbackRates: [] });
 
