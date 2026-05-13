@@ -72,6 +72,8 @@ interface MenuViewportTransitionState {
   phaseKeys: WeakMap<HTMLElement, string>;
   rootSize: MenuViewSize | null;
   rootTransitionId: number;
+  /** Polling RAF from `clearWhenExitIsVisuallyComplete`; cancel when the root transition advances. */
+  rootExitPollRafId: number;
   rootStartingRafs: DoubleAnimationFrameHandles;
   viewportTransitionId: number;
   viewportTransitioning: boolean;
@@ -137,6 +139,7 @@ function getViewportTransitionState(content: HTMLElement): MenuViewportTransitio
       phaseKeys: new WeakMap(),
       rootSize: null,
       rootTransitionId: 0,
+      rootExitPollRafId: 0,
       rootStartingRafs: { first: 0, second: 0 },
       viewportTransitionId: 0,
       viewportTransitioning: false,
@@ -315,6 +318,8 @@ function cancelRootViewTransitionFrames(state: MenuViewportTransitionState): voi
   cancelAnimationFrame(state.rootStartingRafs.first);
   cancelAnimationFrame(state.rootStartingRafs.second);
   resetDoubleAnimationFrameHandles(state.rootStartingRafs);
+  cancelAnimationFrame(state.rootExitPollRafId);
+  state.rootExitPollRafId = 0;
 }
 
 function startRootViewTransition(
@@ -383,10 +388,13 @@ function scheduleRootViewTransitionAttrsClear(
   function clear(): void {
     if (state.rootTransitionId !== transitionId) return;
 
+    cancelAnimationFrame(state.rootExitPollRafId);
+    state.rootExitPollRafId = 0;
     clearMenuViewTransitionAttrs(rootView);
   }
 
   function clearWhenExitIsVisuallyComplete(): void {
+    state.rootExitPollRafId = 0;
     if (state.rootTransitionId !== transitionId || !rootView.hasAttribute(TransitionDataAttrs.transitionEnding)) return;
 
     if (isMenuViewExitVisuallyComplete(rootView)) {
@@ -394,7 +402,7 @@ function scheduleRootViewTransitionAttrsClear(
       return;
     }
 
-    requestAnimationFrame(clearWhenExitIsVisuallyComplete);
+    state.rootExitPollRafId = requestAnimationFrame(clearWhenExitIsVisuallyComplete);
   }
 
   afterDoubleAnimationFrame(
