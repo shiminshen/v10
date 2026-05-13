@@ -1,9 +1,11 @@
 import { findTrackElement, getTextTrackList, listen } from '@videojs/utils/dom';
 
 import type { MediaTextCue, MediaTextTrack, MediaTextTrackState } from '../../../core/media/state';
-import type { TextTrackLike } from '../../../core/media/types';
+import type { MediaTextTrackCapability, TextTrackLike } from '../../../core/media/types';
 import { definePlayerFeature } from '../../feature';
 import { isMediaTextTrackCapable, isQuerySelectorAllCapable } from '../../media/predicate';
+
+const CAPTION_LANG_PREF_KEY = 'videojs-pref-caption-language';
 
 export const textTrackFeature = definePlayerFeature({
   name: 'textTrack',
@@ -40,6 +42,7 @@ export const textTrackFeature = definePlayerFeature({
     if (!isMediaTextTrackCapable(media)) return;
 
     let trackCleanup: AbortController | null = null;
+    let hydrated = false;
 
     const sync = () => {
       trackCleanup?.abort();
@@ -95,6 +98,22 @@ export const textTrackFeature = definePlayerFeature({
       }
 
       set({ chaptersCues, thumbnailCues, thumbnailTrackSrc, textTrackList, subtitlesShowing });
+
+      const showingLanguage = findShowingCaptionLanguage(media);
+      if (showingLanguage) {
+        writeStoredCaptionLanguage(showingLanguage);
+        hydrated = true;
+        return;
+      }
+
+      if (hydrated) return;
+
+      const storedLanguage = readStoredCaptionLanguage();
+      if (!storedLanguage) return;
+
+      if (tryActivateCaptionLanguage(media, storedLanguage)) {
+        hydrated = true;
+      }
     };
 
     sync();
@@ -110,3 +129,45 @@ export const textTrackFeature = definePlayerFeature({
     signal.addEventListener('abort', () => trackCleanup?.abort(), { once: true });
   },
 });
+
+function isCaptionKind(kind: string): boolean {
+  return kind === 'captions' || kind === 'subtitles';
+}
+
+function findShowingCaptionLanguage(media: MediaTextTrackCapability): string | null {
+  for (let i = 0; i < media.textTracks.length; i++) {
+    const track = media.textTracks[i]!;
+    if (isCaptionKind(track.kind) && track.mode === 'showing' && track.language) {
+      return track.language;
+    }
+  }
+  return null;
+}
+
+function tryActivateCaptionLanguage(media: MediaTextTrackCapability, language: string): boolean {
+  for (let i = 0; i < media.textTracks.length; i++) {
+    const track = media.textTracks[i]!;
+    if (isCaptionKind(track.kind) && track.language === language) {
+      track.mode = 'showing';
+      return true;
+    }
+  }
+  return false;
+}
+
+function readStoredCaptionLanguage(): string | null {
+  try {
+    const raw = globalThis.localStorage?.getItem(CAPTION_LANG_PREF_KEY);
+    return raw && raw.length > 0 ? raw : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredCaptionLanguage(language: string): void {
+  try {
+    globalThis.localStorage?.setItem(CAPTION_LANG_PREF_KEY, language);
+  } catch {
+    /* localStorage unavailable (private mode, SSR, quota exceeded) */
+  }
+}

@@ -1,8 +1,10 @@
 import { createStore } from '@videojs/store';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { PlayerTarget } from '../../../media/types';
 import { textTrackFeature } from '../text-track';
+
+const CAPTION_LANG_PREF_KEY = 'videojs-pref-caption-language';
 
 /**
  * jsdom's TextTrackList does not implement EventTarget (no addEventListener/
@@ -34,6 +36,10 @@ function createMockTrack(kind: TextTrackKind, mode: TextTrackMode = 'disabled'):
 }
 
 describe('textTrackFeature', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
   describe('initial state', () => {
     it('has empty initial state', () => {
       const video = createVideo();
@@ -210,6 +216,157 @@ describe('textTrackFeature', () => {
 
       // State remains at defaults
       expect(store.state.thumbnailTrackSrc).toBeNull();
+    });
+  });
+
+  describe('caption language persistence', () => {
+    it('persists language when a subtitles track is already showing on attach', () => {
+      const video = createVideo();
+      const track = { kind: 'subtitles', mode: 'showing', label: 'English', language: 'en' } as TextTrack;
+      mockTextTracks(video, [track]);
+
+      const store = createStore<PlayerTarget>()(textTrackFeature);
+      store.attach({ media: video, container: null });
+
+      expect(localStorage.getItem(CAPTION_LANG_PREF_KEY)).toBe('en');
+    });
+
+    it('persists language when a captions track is showing', () => {
+      const video = createVideo();
+      const track = { kind: 'captions', mode: 'showing', label: 'CC', language: 'fr' } as TextTrack;
+      mockTextTracks(video, [track]);
+
+      const store = createStore<PlayerTarget>()(textTrackFeature);
+      store.attach({ media: video, container: null });
+
+      expect(localStorage.getItem(CAPTION_LANG_PREF_KEY)).toBe('fr');
+    });
+
+    it('hydrates: activates matching track when localStorage has stored language', () => {
+      localStorage.setItem(CAPTION_LANG_PREF_KEY, 'fr');
+
+      const video = createVideo();
+      const enTrack = { kind: 'subtitles', mode: 'disabled', label: 'English', language: 'en' } as TextTrack;
+      const frTrack = { kind: 'subtitles', mode: 'disabled', label: 'French', language: 'fr' } as TextTrack;
+      mockTextTracks(video, [enTrack, frTrack]);
+
+      const store = createStore<PlayerTarget>()(textTrackFeature);
+      store.attach({ media: video, container: null });
+
+      expect(frTrack.mode).toBe('showing');
+      expect(enTrack.mode).toBe('disabled');
+    });
+
+    it('hydration does not override a track that is already showing', () => {
+      localStorage.setItem(CAPTION_LANG_PREF_KEY, 'fr');
+
+      const video = createVideo();
+      const enTrack = { kind: 'subtitles', mode: 'showing', label: 'English', language: 'en' } as TextTrack;
+      const frTrack = { kind: 'subtitles', mode: 'disabled', label: 'French', language: 'fr' } as TextTrack;
+      mockTextTracks(video, [enTrack, frTrack]);
+
+      const store = createStore<PlayerTarget>()(textTrackFeature);
+      store.attach({ media: video, container: null });
+
+      expect(enTrack.mode).toBe('showing');
+      expect(frTrack.mode).toBe('disabled');
+      // The currently-showing language overrides the stored pref.
+      expect(localStorage.getItem(CAPTION_LANG_PREF_KEY)).toBe('en');
+    });
+
+    it('does nothing when stored language has no matching track', () => {
+      localStorage.setItem(CAPTION_LANG_PREF_KEY, 'jp');
+
+      const video = createVideo();
+      const enTrack = { kind: 'subtitles', mode: 'disabled', label: 'English', language: 'en' } as TextTrack;
+      mockTextTracks(video, [enTrack]);
+
+      const store = createStore<PlayerTarget>()(textTrackFeature);
+      store.attach({ media: video, container: null });
+
+      expect(enTrack.mode).toBe('disabled');
+      // Stored pref preserved for when a matching track becomes available later.
+      expect(localStorage.getItem(CAPTION_LANG_PREF_KEY)).toBe('jp');
+    });
+
+    it('does not hydrate tracks of other kinds (chapters, metadata)', () => {
+      localStorage.setItem(CAPTION_LANG_PREF_KEY, 'en');
+
+      const video = createVideo();
+      const chaptersTrack = { kind: 'chapters', mode: 'disabled', label: 'Chapters', language: 'en' } as TextTrack;
+      const metadataTrack = { kind: 'metadata', mode: 'disabled', label: 'meta', language: 'en' } as TextTrack;
+      mockTextTracks(video, [chaptersTrack, metadataTrack]);
+
+      const store = createStore<PlayerTarget>()(textTrackFeature);
+      store.attach({ media: video, container: null });
+
+      expect(chaptersTrack.mode).toBe('disabled');
+      expect(metadataTrack.mode).toBe('disabled');
+    });
+
+    it('hydrates on a later sync when matching track becomes available', () => {
+      localStorage.setItem(CAPTION_LANG_PREF_KEY, 'fr');
+
+      const video = createVideo();
+      mockTextTracks(video, []);
+
+      const store = createStore<PlayerTarget>()(textTrackFeature);
+      store.attach({ media: video, container: null });
+
+      const frTrack = { kind: 'subtitles', mode: 'disabled', label: 'French', language: 'fr' } as TextTrack;
+      mockTextTracks(video, [frTrack]);
+      video.dispatchEvent(new Event('loadstart'));
+
+      expect(frTrack.mode).toBe('showing');
+    });
+
+    it('ignores stored value with empty string', () => {
+      localStorage.setItem(CAPTION_LANG_PREF_KEY, '');
+
+      const video = createVideo();
+      const enTrack = { kind: 'subtitles', mode: 'disabled', label: 'English', language: 'en' } as TextTrack;
+      mockTextTracks(video, [enTrack]);
+
+      const store = createStore<PlayerTarget>()(textTrackFeature);
+      store.attach({ media: video, container: null });
+
+      expect(enTrack.mode).toBe('disabled');
+    });
+
+    it('does not throw when localStorage.getItem throws (private mode)', () => {
+      const original = Storage.prototype.getItem;
+      Storage.prototype.getItem = vi.fn(() => {
+        throw new Error('SecurityError');
+      });
+
+      try {
+        const video = createVideo();
+        const enTrack = { kind: 'subtitles', mode: 'disabled', label: 'English', language: 'en' } as TextTrack;
+        mockTextTracks(video, [enTrack]);
+
+        const store = createStore<PlayerTarget>()(textTrackFeature);
+        expect(() => store.attach({ media: video, container: null })).not.toThrow();
+      } finally {
+        Storage.prototype.getItem = original;
+      }
+    });
+
+    it('does not throw when localStorage.setItem throws (quota exceeded)', () => {
+      const original = Storage.prototype.setItem;
+      Storage.prototype.setItem = vi.fn(() => {
+        throw new Error('QuotaExceededError');
+      });
+
+      try {
+        const video = createVideo();
+        const track = { kind: 'subtitles', mode: 'showing', label: 'English', language: 'en' } as TextTrack;
+        mockTextTracks(video, [track]);
+
+        const store = createStore<PlayerTarget>()(textTrackFeature);
+        expect(() => store.attach({ media: video, container: null })).not.toThrow();
+      } finally {
+        Storage.prototype.setItem = original;
+      }
     });
   });
 });
