@@ -11,7 +11,6 @@ import type {
   VideoFeatures,
   VideoPlayerStore,
 } from '@videojs/core/dom';
-import { createPopupGroup } from '@videojs/core/dom';
 import type { InferStoreState } from '@videojs/store';
 import { combine, createStore } from '@videojs/store';
 import { useStore } from '@videojs/store/react';
@@ -71,7 +70,6 @@ export function createPlayer<const Features extends AnyPlayerFeature[]>(
 export function createPlayer(config: CreatePlayerConfig<AnyPlayerFeature[]>): CreatePlayerResult<AnyPlayerStore> {
   function Provider({ children }: ProviderProps): ReactNode {
     const [store] = useState(() => createStore<PlayerTarget>()(combine(...config.features)));
-    const [popupGroup] = useState(() => createPopupGroup());
     const [media, setMedia] = useState<Media | null>(null);
     const [container, setContainer] = useState<HTMLElement | null>(null);
 
@@ -83,7 +81,7 @@ export function createPlayer(config: CreatePlayerConfig<AnyPlayerFeature[]>): Cr
     }, [media, container, store]);
 
     return (
-      <PlayerContextProvider value={{ store, media, setMedia, container, setContainer, popupGroup }}>
+      <PlayerContextProvider value={{ store, media, setMedia, container, setContainer }}>
         {children}
       </PlayerContextProvider>
     );

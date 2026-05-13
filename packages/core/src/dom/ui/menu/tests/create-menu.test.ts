@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MenuItemDataAttrs } from '../../../../core/ui/menu/menu-item-data-attrs';
 import type { UIFocusEvent, UIKeyboardEvent } from '../../event';
-import { createPopupGroup } from '../../popover/popup-group';
 import { completeMenuItemSelection, getRootPositionOptions, isMenuNavigationKey } from '../create-menu';
 import { cleanupElement, createItemElement, createTestMenu } from './create-menu-helpers';
 
@@ -128,18 +127,64 @@ describe('createMenu', () => {
       expect(onOpenChange).not.toHaveBeenCalled();
     });
 
-    it('closes the previously open grouped menu when another opens', () => {
-      const group = createPopupGroup();
-      const first = createTestMenu({ group: () => group });
-      const second = createTestMenu({ group: () => group });
+    it('does not auto-close the first menu when another root menu opens', () => {
+      const first = createTestMenu();
+      const second = createTestMenu();
 
       first.menu.open();
       first.onOpenChange.mockClear();
 
       second.menu.open();
 
-      expect(first.onOpenChange).toHaveBeenCalledWith(false, { reason: 'group-open' });
-      expect(second.onOpenChange).toHaveBeenCalledWith(true, { reason: 'click' });
+      expect(first.onOpenChange).not.toHaveBeenCalled();
+      expect(first.menu.input.current.active).toBe(true);
+      expect(second.menu.input.current.active).toBe(true);
+    });
+
+    it('does not restore trigger focus after blur close', async () => {
+      const { menu } = createTestMenu();
+      const t1 = document.createElement('button');
+      document.body.appendChild(t1);
+
+      menu.setTriggerElement(t1);
+      menu.open();
+      menu.close('blur');
+
+      const focusSpy = vi.spyOn(t1, 'focus');
+
+      await vi.waitFor(() => expect(menu.input.current.active).toBe(false));
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => resolve());
+        });
+      });
+
+      expect(focusSpy).not.toHaveBeenCalled();
+
+      menu.destroy();
+      t1.remove();
+    });
+
+    it('restores trigger focus after outside-click close', async () => {
+      const { menu } = createTestMenu();
+      const t1 = document.createElement('button');
+      document.body.appendChild(t1);
+      menu.setTriggerElement(t1);
+      menu.open();
+      menu.close('outside-click');
+
+      const focusSpy = vi.spyOn(t1, 'focus');
+
+      await vi.waitFor(() => expect(menu.input.current.active).toBe(false));
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => resolve());
+        });
+      });
+      await vi.waitFor(() => expect(focusSpy).toHaveBeenCalledTimes(1));
+
+      menu.destroy();
+      t1.remove();
     });
 
     it('highlights the first DOM item when items register after opening', () => {
@@ -234,6 +279,46 @@ describe('createMenu', () => {
       menu.contentProps.onFocusOut(makeFocusEvent(outside));
 
       expect(onOpenChange).toHaveBeenCalledWith(false, { reason: 'blur' });
+    });
+
+    it('peer root can open after first loses focus to the peer trigger without closing the peer', () => {
+      const { menu: menuA, onOpenChange: onA } = createTestMenu();
+      const { menu: menuB, onOpenChange: onB } = createTestMenu();
+
+      const aT = document.createElement('button');
+      const aC = document.createElement('div');
+      const subItem = document.createElement('button');
+      aC.appendChild(subItem);
+      const bT = document.createElement('button');
+      const bC = document.createElement('div');
+      document.body.append(aT, aC, bT, bC);
+
+      menuA.setTriggerElement(aT);
+      menuA.setContentElement(aC);
+      menuB.setTriggerElement(bT);
+      menuB.setContentElement(bC);
+
+      menuA.open();
+      menuA.registerItem(subItem);
+      subItem.focus();
+
+      onA.mockClear();
+      onB.mockClear();
+
+      menuA.contentProps.onFocusOut(makeFocusEvent(bT));
+      menuB.open('click');
+      bT.focus();
+
+      expect(onA).toHaveBeenCalledWith(false, { reason: 'blur' });
+      expect(onB).toHaveBeenCalledWith(true, { reason: 'click' });
+      expect(onB).not.toHaveBeenCalledWith(false, expect.anything());
+
+      menuA.destroy();
+      menuB.destroy();
+      aT.remove();
+      aC.remove();
+      bT.remove();
+      bC.remove();
     });
 
     it('keeps the menu open when focus moves inside the menu', () => {
@@ -400,10 +485,9 @@ describe('createMenu', () => {
       expect(focus).not.toHaveBeenCalled();
     });
 
-    it('does not restore focus when another grouped popup opens', async () => {
-      const group = createPopupGroup();
-      const first = createTestMenu({ group: () => group });
-      const second = createTestMenu({ group: () => group });
+    it('does not restore focus when opening a second root menu leaves the first open', async () => {
+      const first = createTestMenu();
+      const second = createTestMenu();
       const trigger = document.createElement('button');
       const focus = vi.spyOn(trigger, 'focus');
 
@@ -412,9 +496,10 @@ describe('createMenu', () => {
       second.menu.open();
 
       await vi.waitFor(() => {
-        expect(first.menu.input.current.active).toBe(false);
+        expect(second.menu.input.current.active).toBe(true);
       });
 
+      expect(first.menu.input.current.active).toBe(true);
       expect(focus).not.toHaveBeenCalled();
     });
   });

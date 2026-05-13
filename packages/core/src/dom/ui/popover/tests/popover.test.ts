@@ -1,6 +1,5 @@
 import { flush } from '@videojs/store';
 import { describe, expect, it, vi } from 'vitest';
-import { createPopupGroup } from '../popup-group';
 import { createTestPopover } from './popover-helpers';
 
 describe('createPopover', () => {
@@ -95,25 +94,9 @@ describe('createPopover', () => {
       expect(onOpenChange).not.toHaveBeenCalled();
     });
 
-    it('closes the previously open grouped popover when another opens', () => {
-      const group = createPopupGroup();
-      const first = createTestPopover({ group: () => group });
-      const second = createTestPopover({ group: () => group });
-
-      first.popover.open();
-      first.onOpenChange.mockClear();
-
-      second.popover.open();
-
-      expect(first.onOpenChange).toHaveBeenCalledWith(false, { reason: 'group-open' });
-      expect(second.onOpenChange).toHaveBeenCalledWith(true, { reason: 'click' });
-    });
-
-    it('does not close popovers in a different group', () => {
-      const firstGroup = createPopupGroup();
-      const secondGroup = createPopupGroup();
-      const first = createTestPopover({ group: () => firstGroup });
-      const second = createTestPopover({ group: () => secondGroup });
+    it('does not auto-close the first popover when another opens', () => {
+      const first = createTestPopover();
+      const second = createTestPopover();
 
       first.popover.open();
       first.onOpenChange.mockClear();
@@ -121,21 +104,8 @@ describe('createPopover', () => {
       second.popover.open();
 
       expect(first.onOpenChange).not.toHaveBeenCalled();
-    });
-
-    it('clears the grouped popover when destroyed', () => {
-      const group = createPopupGroup();
-      const first = createTestPopover({ group: () => group });
-      const second = createTestPopover({ group: () => group });
-
-      first.popover.open();
-      first.popover.destroy();
-      first.onOpenChange.mockClear();
-
-      second.popover.open();
-
-      expect(first.onOpenChange).not.toHaveBeenCalled();
-      expect(second.onOpenChange).toHaveBeenCalledWith(true, { reason: 'click' });
+      expect(first.popover.input.current.active).toBe(true);
+      expect(second.popover.input.current.active).toBe(true);
     });
   });
 
@@ -305,6 +275,41 @@ describe('createPopover', () => {
 
       popover.destroy();
       popup.remove();
+    });
+
+    it('closes on outside pointerdown when targeting another popover trigger, then peer can open', () => {
+      const first = createTestPopover();
+      const second = createTestPopover();
+      const t1 = document.createElement('button');
+      const t2 = document.createElement('button');
+      const p1 = document.createElement('div');
+      document.body.appendChild(t1);
+      document.body.appendChild(t2);
+      document.body.appendChild(p1);
+
+      first.popover.setTriggerElement(t1);
+      first.popover.setPopupElement(p1);
+      second.popover.setTriggerElement(t2);
+
+      first.popover.open();
+      flush();
+      first.onOpenChange.mockClear();
+      second.onOpenChange.mockClear();
+
+      t2.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, composed: true }));
+
+      expect(first.onOpenChange).toHaveBeenCalledWith(false, expect.objectContaining({ reason: 'outside-click' }));
+
+      const click = { preventDefault: vi.fn() } as unknown as UIEvent;
+      second.popover.triggerProps.onClick(click);
+
+      expect(second.onOpenChange).toHaveBeenCalledWith(true, expect.objectContaining({ reason: 'click' }));
+
+      first.popover.destroy();
+      second.popover.destroy();
+      t1.remove();
+      t2.remove();
+      p1.remove();
     });
 
     it('closes when clicking outside the popup', () => {

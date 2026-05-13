@@ -4,7 +4,6 @@ import type { PopoverInput } from '../../../core/ui/popover/popover-core';
 import { createDismissLayer } from '../dismiss-layer';
 import type { UIFocusEvent, UIPointerEvent } from '../event';
 import type { TransitionApi } from '../transition';
-import type { PopupGroup } from './popup-group';
 
 export type PopoverOpenChangeReason =
   | 'click'
@@ -13,8 +12,7 @@ export type PopoverOpenChangeReason =
   | 'escape'
   | 'outside-click'
   | 'blur'
-  | 'imperative-action'
-  | 'group-open';
+  | 'imperative-action';
 
 export interface PopoverChangeDetails {
   reason: PopoverOpenChangeReason;
@@ -31,7 +29,6 @@ export interface PopoverOptions {
   openOnHover?: () => boolean;
   delay?: () => number;
   closeDelay?: () => number;
-  group?: () => PopupGroup | undefined;
 }
 
 export interface PopoverTriggerProps {
@@ -78,16 +75,14 @@ export function createPopover(options: PopoverOptions): PopoverApi {
       applyClose('escape', event);
     },
     onDocumentActive(signal) {
-      listen(document, 'pointerdown', handleDocumentPointerdown, { capture: true, signal });
+      listen(document, 'pointerdown', handleDocumentPointerdown, {
+        capture: true,
+        signal,
+      });
     },
   });
 
   const state = layer.input;
-  const groupMember = {
-    close(reason: 'group-open') {
-      applyClose(reason);
-    },
-  };
 
   // --- Hover management ---
 
@@ -133,8 +128,6 @@ export function createPopover(options: PopoverOptions): PopoverApi {
     const opening = layer.open(popupEl);
     if (!opening) return;
 
-    options.group?.()?.open(groupMember);
-
     const details: PopoverChangeDetails = event ? { reason, event } : { reason };
     onOpenChange(true, details);
 
@@ -147,8 +140,6 @@ export function createPopover(options: PopoverOptions): PopoverApi {
   function applyClose(reason: PopoverOpenChangeReason, event?: Event): void {
     const closing = layer.close(popupEl);
     if (!closing) return;
-
-    options.group?.()?.close(groupMember);
 
     const details: PopoverChangeDetails = event ? { reason, event } : { reason };
     onOpenChange(false, details);
@@ -187,7 +178,6 @@ export function createPopover(options: PopoverOptions): PopoverApi {
 
   // Cleanup hover timeout on destroy.
   layer.signal.addEventListener('abort', () => {
-    options.group?.()?.close(groupMember);
     clearHoverTimeout();
     capturedPointers.clear();
     triggerEl = null;
@@ -209,7 +199,7 @@ export function createPopover(options: PopoverOptions): PopoverApi {
         return;
       }
 
-      // During the close animation `layer.close()` is a no-op; reopen cancels the close
+      // During the close animation `layer.close()` is a no-op; reopening cancels the close
       // (see `createDismissLayer.open` when `status === 'ending'`).
       if (status === 'ending') {
         applyOpen('click', event);
@@ -303,7 +293,24 @@ export function createPopover(options: PopoverOptions): PopoverApi {
         return;
       }
 
-      applyClose('blur');
+      if (relatedTarget !== null) {
+        if (!state.current.active || state.current.status === 'ending') return;
+        applyClose('blur');
+        return;
+      }
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (!state.current.active || state.current.status === 'ending') return;
+
+          const active = typeof document !== 'undefined' ? document.activeElement : null;
+          if (active && (triggerEl?.contains(active) || popupEl?.contains(active))) {
+            return;
+          }
+
+          applyClose('blur');
+        });
+      });
     },
   };
 
@@ -324,7 +331,7 @@ export function createPopover(options: PopoverOptions): PopoverApi {
     options.transition.setElement(el);
 
     if (el) {
-      // If the popover is already open (e.g., React mount after state
+      // If the popover is already open (e.g. React mount after state
       // change), show the popover now. In `applyOpen` the element may not
       // have been in the DOM yet, so the earlier `tryShowPopover` was a no-op.
       if (state.current.active) {
@@ -344,6 +351,8 @@ export function createPopover(options: PopoverOptions): PopoverApi {
     setPopupElement,
     open,
     close,
-    destroy: layer.destroy,
+    destroy() {
+      layer.destroy();
+    },
   };
 }

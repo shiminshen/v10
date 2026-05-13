@@ -5,7 +5,7 @@ import { createMenu, createTransition, type MenuChangeDetails, type PositioningB
 import { useSnapshot } from '@videojs/store/react';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
-import { useOptionalContainer, useOptionalPopupGroup } from '../../player/context';
+import { useOptionalContainer } from '../../player/context';
 import { useDestroy } from '../../utils/use-destroy';
 import { useLatestRef } from '../../utils/use-latest-ref';
 import { useSafeId } from '../../utils/use-safe-id';
@@ -36,7 +36,6 @@ export function MenuRoot({
   const parentMenu = useOptionalMenuContext();
   const controls = useOptionalControlsContext();
   const container = useOptionalContainer();
-  const popupGroup = useOptionalPopupGroup();
   const isSubmenu = parentMenu !== null;
   const { side, align, closeOnEscape, closeOnOutsideClick } = coreProps;
 
@@ -48,8 +47,6 @@ export function MenuRoot({
   const onOpenChangeCompleteRef = useLatestRef(onOpenChangeCompleteProp);
   const closeOnEscapeRef = useLatestRef(closeOnEscape);
   const closeOnOutsideClickRef = useLatestRef(closeOnOutsideClick);
-  const popupGroupRef = useLatestRef(popupGroup);
-  const isSubmenuRef = useLatestRef(isSubmenu);
 
   const [menu] = useState(() => {
     const instance = createMenu({
@@ -62,7 +59,6 @@ export function MenuRoot({
       },
       closeOnEscape: () => closeOnEscapeRef.current ?? MenuCore.defaultProps.closeOnEscape,
       closeOnOutsideClick: () => closeOnOutsideClickRef.current ?? MenuCore.defaultProps.closeOnOutsideClick,
-      group: () => (isSubmenuRef.current ? undefined : popupGroupRef.current),
     });
 
     if (!isControlled && defaultOpen) {

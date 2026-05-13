@@ -13,6 +13,36 @@ import { MenuView } from '../menu-view';
 
 afterEach(cleanup);
 
+function PeerMenusWithSubmenuFixture({
+  onSecondOpenChange,
+}: {
+  onSecondOpenChange?: (open: boolean, details: { reason: string }) => void;
+}) {
+  return (
+    <>
+      <MenuRoot defaultOpen>
+        <MenuTrigger data-testid="peer-a-trigger">Menu A</MenuTrigger>
+        <MenuContent data-testid="peer-a-content">
+          <MenuView data-testid="peer-a-view">
+            <MenuRoot>
+              <MenuTrigger data-testid="peer-sub-trigger">Sub</MenuTrigger>
+              <MenuContent data-testid="peer-sub-content">
+                <MenuItem>Sub item</MenuItem>
+              </MenuContent>
+            </MenuRoot>
+          </MenuView>
+        </MenuContent>
+      </MenuRoot>
+      <MenuRoot {...(onSecondOpenChange ? { onOpenChange: onSecondOpenChange } : {})}>
+        <MenuTrigger data-testid="peer-b-trigger">Menu B</MenuTrigger>
+        <MenuContent data-testid="peer-b-content">
+          <MenuItem data-testid="peer-b-item">Option</MenuItem>
+        </MenuContent>
+      </MenuRoot>
+    </>
+  );
+}
+
 function SubmenuFixture() {
   return (
     <MenuRoot defaultOpen>
@@ -737,5 +767,31 @@ describe('MenuContent', () => {
     fireEvent.focusOut(screen.getByTestId('root-content'), { relatedTarget: screen.getByTestId('submenu-item') });
 
     expect(onRootOpenChange).not.toHaveBeenCalledWith(false, expect.anything());
+  });
+
+  it('keeps the second root menu open after clicking its trigger while a sibling submenu is active', async () => {
+    const onSecond = vi.fn();
+    render(<PeerMenusWithSubmenuFixture onSecondOpenChange={onSecond} />);
+
+    fireEvent.click(screen.getByTestId('peer-sub-trigger'));
+    await waitFor(() => {
+      expect(screen.queryByTestId('peer-sub-content')).not.toBeNull();
+    });
+
+    fireEvent.click(screen.getByTestId('peer-b-trigger'));
+
+    await waitFor(() => {
+      expect(onSecond).toHaveBeenCalledWith(true, expect.objectContaining({ reason: 'click' }));
+    });
+
+    expect(screen.queryByTestId('peer-b-content')).not.toBeNull();
+
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => resolve());
+      });
+    });
+
+    expect(onSecond.mock.calls).toEqual([[true, expect.objectContaining({ reason: 'click' })]]);
   });
 });
