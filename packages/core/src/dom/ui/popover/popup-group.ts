@@ -11,6 +11,12 @@ export interface PopupGroup {
   addMemberTrigger: (element: HTMLElement) => () => void;
   /** True if the event path hits another member's trigger (not `ownTrigger`). */
   pathHasPeerMemberTrigger: (path: EventTarget[], ownTrigger: HTMLElement | null) => boolean;
+  /**
+   * True if `element` is a registered peer trigger (not `ownTrigger`). Used to avoid yanking
+   * focus during deferred trigger restoration while a sibling menu’s trigger or surface already
+   * owns focus.
+   */
+  isPeerTrigger: (element: HTMLElement | null, ownTrigger: HTMLElement | null) => boolean;
 }
 
 let sharedMenuPopupGroup: PopupGroup | null = null;
@@ -60,6 +66,10 @@ export function createPopupGroup(): PopupGroup {
         }
       }
       return false;
+    },
+
+    isPeerTrigger(element: HTMLElement | null, ownTrigger: HTMLElement | null) {
+      return element !== null && element !== ownTrigger && memberTriggers.has(element);
     },
   };
 }

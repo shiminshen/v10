@@ -70,4 +70,16 @@ describe('createPopupGroup', () => {
     unregB();
     expect(group.pathHasPeerMemberTrigger([b], a)).toBe(false);
   });
+
+  it('detects peer triggers for focus-restore suppression', () => {
+    const group = createPopupGroup();
+    const a = document.createElement('button');
+    const b = document.createElement('button');
+    group.addMemberTrigger(a);
+    group.addMemberTrigger(b);
+
+    expect(group.isPeerTrigger(b, a)).toBe(true);
+    expect(group.isPeerTrigger(a, a)).toBe(false);
+    expect(group.isPeerTrigger(null, a)).toBe(false);
+  });
 });

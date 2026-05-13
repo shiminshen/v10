@@ -334,6 +334,10 @@ export function createPopover(options: PopoverOptions): PopoverApi {
         return;
       }
 
+      if (relatedTarget instanceof HTMLElement && options.group?.()?.isPeerTrigger?.(relatedTarget, triggerEl)) {
+        return;
+      }
+
       if (relatedTarget !== null) {
         if (!state.current.active || state.current.status === 'ending') return;
         applyClose('blur');
@@ -342,7 +346,9 @@ export function createPopover(options: PopoverOptions): PopoverApi {
 
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          if (!state.current.active || state.current.status === 'ending') return;
+          if (!state.current.active || state.current.status === 'ending' || state.current.status === 'starting') {
+            return;
+          }
 
           const active = typeof document !== 'undefined' ? document.activeElement : null;
           if (active && (triggerEl?.contains(active) || popupEl?.contains(active))) {

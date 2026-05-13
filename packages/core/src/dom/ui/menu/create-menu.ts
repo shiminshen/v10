@@ -141,6 +141,9 @@ function bindMenuPopupGroup(group: PopupGroup, hasParentMenu: () => boolean): Po
     pathHasPeerMemberTrigger(path, ownTrigger) {
       return group.pathHasPeerMemberTrigger(path, ownTrigger);
     },
+    isPeerTrigger(element, ownTrigger) {
+      return group.isPeerTrigger(element, ownTrigger);
+    },
   };
 }
 
@@ -157,6 +160,10 @@ export function createMenu(options: MenuOptions): MenuApi {
   let lastCloseReason: MenuOpenChangeReason | null = null;
 
   const navigationState = createState<NavigationState>({ stack: [], direction: 'forward' });
+
+  function getMenuPopupGroup(): PopupGroup {
+    return bindMenuPopupGroup(options.group?.() ?? getSharedMenuPopupGroup(), () => options.parentMenu?.() != null);
+  }
 
   function push(menuId: string, triggerId: string): void {
     const stack = navigationState.current.stack;
@@ -309,6 +316,19 @@ export function createMenu(options: MenuOptions): MenuApi {
           // Without this guard, the scheduled focus runs after the menu has reopened and
           // highlights an item — pulling focus to the trigger and blur-closing the menu.
           if (popover.input.current.active) return;
+          // Another root menu may already have focus (e.g. this menu dismissed via
+          // outside-click on a peer trigger before the peer opened). Restoring our trigger
+          // would steal focus from that menu and blur-close it.
+          if (typeof document !== 'undefined') {
+            const active = document.activeElement;
+            const menuSurface = active instanceof HTMLElement ? active.closest('[role="menu"]') : null;
+            if (menuSurface instanceof HTMLElement && contentElement && !contentElement.contains(menuSurface)) {
+              return;
+            }
+            if (active instanceof HTMLElement && getMenuPopupGroup().isPeerTrigger(active, element)) {
+              return;
+            }
+          }
           element?.focus();
         };
 
@@ -321,8 +341,7 @@ export function createMenu(options: MenuOptions): MenuApi {
     },
     closeOnEscape: options.closeOnEscape,
     closeOnOutsideClick: options.closeOnOutsideClick,
-    group: () =>
-      bindMenuPopupGroup(options.group?.() ?? getSharedMenuPopupGroup(), () => options.parentMenu?.() != null),
+    group: getMenuPopupGroup,
   });
 
   // --- Content keyboard navigation ---

@@ -400,6 +400,40 @@ describe('createPopover', () => {
       p1.remove();
     });
 
+    it('does not blur-close when focus moves to another registered group trigger', () => {
+      const group = createPopupGroup();
+      const first = createTestPopover({ group: () => group });
+      const second = createTestPopover({ group: () => group });
+      const t1 = document.createElement('button');
+      const t2 = document.createElement('button');
+      const p2 = document.createElement('div');
+      document.body.appendChild(t1);
+      document.body.appendChild(t2);
+      document.body.appendChild(p2);
+
+      first.popover.setTriggerElement(t1);
+      second.popover.setTriggerElement(t2);
+      second.popover.setPopupElement(p2);
+
+      second.popover.open();
+      flush();
+      second.onOpenChange.mockClear();
+
+      second.popover.popupProps.onFocusOut({
+        relatedTarget: t1,
+        preventDefault: vi.fn(),
+        stopPropagation: vi.fn(),
+      });
+
+      expect(second.onOpenChange).not.toHaveBeenCalledWith(false, expect.anything());
+
+      first.popover.destroy();
+      second.popover.destroy();
+      t1.remove();
+      t2.remove();
+      p2.remove();
+    });
+
     it('closes when clicking outside the popup', () => {
       const { popover, onOpenChange } = createTestPopover();
       const popup = document.createElement('div');
