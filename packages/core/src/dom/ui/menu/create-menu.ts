@@ -4,6 +4,7 @@ import { MenuItemDataAttrs } from '../../../core/ui/menu/menu-item-data-attrs';
 import type { UIFocusEvent, UIKeyboardEvent } from '../event';
 import { createPopover, type PopoverChangeDetails, type PopoverOpenChangeReason } from '../popover/popover';
 import type { PositioningOptions } from '../popover/popover-positioning';
+import type { PopupGroup } from '../popover/popup-group';
 import type { TransitionApi } from '../transition';
 
 export type MenuOpenChangeReason = PopoverOpenChangeReason;
@@ -33,6 +34,8 @@ export interface MenuOptions {
   closeOnOutsideClick: () => boolean;
   /** Called when the highlighted item changes. */
   onHighlightChange?: (element: HTMLElement | null) => void;
+  /** Optional group so opening this menu closes other root menus/popovers in the same group. */
+  group?: () => PopupGroup | undefined;
 }
 
 export interface MenuTriggerProps {
@@ -263,7 +266,12 @@ export function createMenu(options: MenuOptions): MenuApi {
       options.onOpenChangeComplete?.(open);
       // Return focus to the trigger after the close animation completes
       // so screen readers hear the correct context.
-      if (!open && lastCloseReason !== 'imperative-action' && lastCloseReason !== 'blur') {
+      if (
+        !open &&
+        lastCloseReason !== 'imperative-action' &&
+        lastCloseReason !== 'group-open' &&
+        lastCloseReason !== 'blur'
+      ) {
         const element = triggerElement;
 
         const restoreTriggerFocus = (): void => {
@@ -279,6 +287,7 @@ export function createMenu(options: MenuOptions): MenuApi {
     },
     closeOnEscape: options.closeOnEscape,
     closeOnOutsideClick: options.closeOnOutsideClick,
+    group: options.group ?? (() => undefined),
   });
 
   // --- Content keyboard navigation ---

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MenuItemDataAttrs } from '../../../../core/ui/menu/menu-item-data-attrs';
 import type { UIFocusEvent, UIKeyboardEvent } from '../../event';
+import { createPopupGroup } from '../../popover/popup-group';
 import { completeMenuItemSelection, getRootPositionOptions, isMenuNavigationKey } from '../create-menu';
 import { cleanupElement, createItemElement, createTestMenu } from './create-menu-helpers';
 
@@ -127,7 +128,7 @@ describe('createMenu', () => {
       expect(onOpenChange).not.toHaveBeenCalled();
     });
 
-    it('does not auto-close the first menu when another root menu opens', () => {
+    it('does not auto-close the first menu when another root menu opens without a shared group', () => {
       const first = createTestMenu();
       const second = createTestMenu();
 
@@ -139,6 +140,20 @@ describe('createMenu', () => {
       expect(first.onOpenChange).not.toHaveBeenCalled();
       expect(first.menu.input.current.active).toBe(true);
       expect(second.menu.input.current.active).toBe(true);
+    });
+
+    it('closes the previously open root menu when another opens with a shared PopupGroup', () => {
+      const group = createPopupGroup();
+      const first = createTestMenu({ group: () => group });
+      const second = createTestMenu({ group: () => group });
+
+      first.menu.open();
+      first.onOpenChange.mockClear();
+
+      second.menu.open();
+
+      expect(first.onOpenChange).toHaveBeenCalledWith(false, { reason: 'group-open' });
+      expect(second.onOpenChange).toHaveBeenCalledWith(true, { reason: 'click' });
     });
 
     it('does not restore trigger focus after blur close', async () => {

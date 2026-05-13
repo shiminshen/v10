@@ -1,5 +1,6 @@
 import { flush } from '@videojs/store';
 import { describe, expect, it, vi } from 'vitest';
+import { createPopupGroup } from '../popup-group';
 import { createTestPopover } from './popover-helpers';
 
 describe('createPopover', () => {
@@ -94,7 +95,7 @@ describe('createPopover', () => {
       expect(onOpenChange).not.toHaveBeenCalled();
     });
 
-    it('does not auto-close the first popover when another opens', () => {
+    it('does not auto-close the first popover when another opens without a shared group', () => {
       const first = createTestPopover();
       const second = createTestPopover();
 
@@ -106,6 +107,49 @@ describe('createPopover', () => {
       expect(first.onOpenChange).not.toHaveBeenCalled();
       expect(first.popover.input.current.active).toBe(true);
       expect(second.popover.input.current.active).toBe(true);
+    });
+
+    it('closes the previously open grouped popover when another opens', () => {
+      const group = createPopupGroup();
+      const first = createTestPopover({ group: () => group });
+      const second = createTestPopover({ group: () => group });
+
+      first.popover.open();
+      first.onOpenChange.mockClear();
+
+      second.popover.open();
+
+      expect(first.onOpenChange).toHaveBeenCalledWith(false, { reason: 'group-open' });
+      expect(second.onOpenChange).toHaveBeenCalledWith(true, { reason: 'click' });
+    });
+
+    it('does not close popovers in a different group', () => {
+      const firstGroup = createPopupGroup();
+      const secondGroup = createPopupGroup();
+      const first = createTestPopover({ group: () => firstGroup });
+      const second = createTestPopover({ group: () => secondGroup });
+
+      first.popover.open();
+      first.onOpenChange.mockClear();
+
+      second.popover.open();
+
+      expect(first.onOpenChange).not.toHaveBeenCalled();
+    });
+
+    it('clears the grouped popover when destroyed', () => {
+      const group = createPopupGroup();
+      const first = createTestPopover({ group: () => group });
+      const second = createTestPopover({ group: () => group });
+
+      first.popover.open();
+      first.popover.destroy();
+      first.onOpenChange.mockClear();
+
+      second.popover.open();
+
+      expect(first.onOpenChange).not.toHaveBeenCalled();
+      expect(second.onOpenChange).toHaveBeenCalledWith(true, { reason: 'click' });
     });
   });
 

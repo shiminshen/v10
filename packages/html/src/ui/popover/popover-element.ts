@@ -81,6 +81,7 @@ export class PopoverElement extends MediaElement {
       openOnHover: () => this.openOnHover,
       delay: () => this.delay,
       closeDelay: () => this.closeDelay,
+      group: () => this.#containerCtx.value?.popupGroup,
     });
 
     // Register self as the popup element — the element IS the popup.

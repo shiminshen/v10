@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { KeyboardEventHandler, KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-
+import { PopupGroupProvider } from '../../../player/context';
 import { ControlsContextProvider } from '../../controls/context';
 import { MenuBack } from '../menu-back';
 import { MenuCheckboxItem } from '../menu-checkbox-item';
@@ -19,7 +19,7 @@ function PeerMenusWithSubmenuFixture({
   onSecondOpenChange?: (open: boolean, details: { reason: string }) => void;
 }) {
   return (
-    <>
+    <PopupGroupProvider>
       <MenuRoot defaultOpen>
         <MenuTrigger data-testid="peer-a-trigger">Menu A</MenuTrigger>
         <MenuContent data-testid="peer-a-content">
@@ -39,7 +39,7 @@ function PeerMenusWithSubmenuFixture({
           <MenuItem data-testid="peer-b-item">Option</MenuItem>
         </MenuContent>
       </MenuRoot>
-    </>
+    </PopupGroupProvider>
   );
 }
 

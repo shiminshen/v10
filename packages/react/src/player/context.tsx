@@ -1,11 +1,11 @@
 'use client';
 
 import type { Media } from '@videojs/core';
-import type { MediaContainer } from '@videojs/core/dom';
+import { createPopupGroup, type MediaContainer, type PopupGroup } from '@videojs/core/dom';
 import type { UnknownState, UnknownStore } from '@videojs/store';
 import { useStore } from '@videojs/store/react';
 import type { Dispatch, HTMLAttributes, ReactNode, PointerEvent as ReactPointerEvent, SetStateAction } from 'react';
-import { createContext, forwardRef, useContext, useEffect, useRef } from 'react';
+import { createContext, forwardRef, useContext, useEffect, useRef, useState } from 'react';
 
 import { useComposedRefs } from '../utils/use-composed-refs';
 
@@ -15,9 +15,13 @@ export interface PlayerContextValue {
   setMedia: Dispatch<SetStateAction<Media | null>>;
   container: MediaContainer | null;
   setContainer: Dispatch<SetStateAction<HTMLElement | null>>;
+  popupGroup?: PopupGroup;
 }
 
 const PlayerContext = createContext<PlayerContextValue | null>(null);
+
+/** Shared {@link PopupGroup} for menus/popovers when not inside {@link PlayerContextProvider}. */
+const ShellPopupGroupContext = createContext<PopupGroup | undefined>(undefined);
 
 const EMPTY_UNSUBSCRIBE = () => {};
 const EMPTY_STORE = {
@@ -33,6 +37,12 @@ export function PlayerContextProvider({
   children: ReactNode;
 }): ReactNode {
   return <PlayerContext.Provider value={value}>{children}</PlayerContext.Provider>;
+}
+
+/** Supplies a shared {@link PopupGroup} for standalone menus and popovers (outside a player). */
+export function PopupGroupProvider({ children }: { children: ReactNode }): ReactNode {
+  const [popupGroup] = useState(() => createPopupGroup());
+  return <ShellPopupGroupContext.Provider value={popupGroup}>{children}</ShellPopupGroupContext.Provider>;
 }
 
 /** Access the full player context value. Throws if used outside a Player Provider. */
@@ -93,6 +103,13 @@ export function useContainer(): MediaContainer | null {
 export function useOptionalContainer(): MediaContainer | null {
   const ctx = useContext(PlayerContext);
   return ctx?.container ?? null;
+}
+
+/** Access the interactive popup group from a Player or {@link PopupGroupProvider}. */
+export function useOptionalPopupGroup(): PopupGroup | undefined {
+  const player = useContext(PlayerContext);
+  const shell = useContext(ShellPopupGroupContext);
+  return player?.popupGroup ?? shell;
 }
 
 /** Access the media attach setter for connecting a media element to the player. */

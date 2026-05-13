@@ -1,15 +1,16 @@
 'use client';
 
-import type {
-  AnyPlayerFeature,
-  AnyPlayerStore,
-  AudioFeatures,
-  AudioPlayerStore,
-  Media,
-  PlayerStore,
-  PlayerTarget,
-  VideoFeatures,
-  VideoPlayerStore,
+import {
+  type AnyPlayerFeature,
+  type AnyPlayerStore,
+  type AudioFeatures,
+  type AudioPlayerStore,
+  createPopupGroup,
+  type Media,
+  type PlayerStore,
+  type PlayerTarget,
+  type VideoFeatures,
+  type VideoPlayerStore,
 } from '@videojs/core/dom';
 import type { InferStoreState } from '@videojs/store';
 import { combine, createStore } from '@videojs/store';
@@ -70,6 +71,7 @@ export function createPlayer<const Features extends AnyPlayerFeature[]>(
 export function createPlayer(config: CreatePlayerConfig<AnyPlayerFeature[]>): CreatePlayerResult<AnyPlayerStore> {
   function Provider({ children }: ProviderProps): ReactNode {
     const [store] = useState(() => createStore<PlayerTarget>()(combine(...config.features)));
+    const [popupGroup] = useState(() => createPopupGroup());
     const [media, setMedia] = useState<Media | null>(null);
     const [container, setContainer] = useState<HTMLElement | null>(null);
 
@@ -81,7 +83,7 @@ export function createPlayer(config: CreatePlayerConfig<AnyPlayerFeature[]>): Cr
     }, [media, container, store]);
 
     return (
-      <PlayerContextProvider value={{ store, media, setMedia, container, setContainer }}>
+      <PlayerContextProvider value={{ store, media, setMedia, container, setContainer, popupGroup }}>
         {children}
       </PlayerContextProvider>
     );

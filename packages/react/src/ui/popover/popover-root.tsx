@@ -11,7 +11,7 @@ import { useSnapshot } from '@videojs/store/react';
 import { isUndefined } from '@videojs/utils/predicate';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
-import { useOptionalContainer } from '../../player/context';
+import { useOptionalContainer, useOptionalPopupGroup } from '../../player/context';
 import { useDestroy } from '../../utils/use-destroy';
 import { useLatestRef } from '../../utils/use-latest-ref';
 import { useSafeId } from '../../utils/use-safe-id';
@@ -41,6 +41,7 @@ export function PopoverRoot({
   ...coreProps
 }: PopoverRootProps): ReactNode {
   const container = useOptionalContainer();
+  const popupGroup = useOptionalPopupGroup();
   const controls = useOptionalControlsContext();
   const [core] = useState(() => new PopoverCore(coreProps));
   core.setProps(coreProps);
@@ -56,6 +57,7 @@ export function PopoverRoot({
   const openOnHoverRef = useLatestRef(openOnHover);
   const delayRef = useLatestRef(delay);
   const closeDelayRef = useLatestRef(closeDelay);
+  const popupGroupRef = useLatestRef(popupGroup);
   const [popover] = useState(() => {
     const instance = createPopover({
       transition: createTransition(),
@@ -70,6 +72,7 @@ export function PopoverRoot({
       openOnHover: () => openOnHoverRef.current,
       delay: () => delayRef.current,
       closeDelay: () => closeDelayRef.current,
+      group: () => popupGroupRef.current,
     });
 
     // Apply defaultOpen on creation (uncontrolled only)
