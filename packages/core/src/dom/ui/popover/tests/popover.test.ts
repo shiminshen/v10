@@ -207,7 +207,7 @@ describe('createPopover', () => {
 
       popover.triggerProps.onClick(event);
 
-      expect(event.preventDefault).toHaveBeenCalledTimes(1);
+      expect(event.preventDefault).not.toHaveBeenCalled();
       expect(onOpenChange).not.toHaveBeenCalled();
       expect(popover.input.current.active).toBe(false);
 
