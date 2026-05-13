@@ -1,4 +1,5 @@
 // Core
+export { VERSION } from '@videojs/core';
 export * from '@videojs/core/dom';
 export type {
   Destroyable,

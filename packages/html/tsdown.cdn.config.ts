@@ -5,6 +5,7 @@ import type { UserConfig } from 'tsdown';
 import { defineConfig } from 'tsdown';
 import { inlineCssPlugin } from '../../build/plugins/inline-css-plugin.ts';
 import { inlineTemplatePlugin } from '../../build/plugins/inline-template-plugin.ts';
+import packageJson from './package.json' with { type: 'json' };
 
 type BuildMode = 'dev' | 'prod';
 
@@ -94,6 +95,7 @@ for (const mode of buildModes) {
     },
     define: {
       __DEV__: isProd ? 'false' : 'true',
+      __PLAYER_VERSION__: JSON.stringify(packageJson.version),
     },
     plugins: [
       inlineCssPlugin({ skinsDir, minify: isProd }),

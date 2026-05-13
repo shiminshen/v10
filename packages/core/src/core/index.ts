@@ -66,3 +66,4 @@ export * from './ui/types';
 export * from './ui/volume-slider/volume-slider-core';
 export * from './ui/volume-slider/volume-slider-css-vars';
 export * from './ui/volume-slider/volume-slider-data-attrs';
+export * from './version';

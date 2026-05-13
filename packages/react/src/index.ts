@@ -2,6 +2,7 @@
 
 export type { IndicatorStatus, InputAction, InputIndicatorLabels } from '@videojs/core';
 // Core
+export { VERSION } from '@videojs/core';
 export * from '@videojs/core/dom';
 // Store
 export type { Comparator, Selector } from '@videojs/store';
