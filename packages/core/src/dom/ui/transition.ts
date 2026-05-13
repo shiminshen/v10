@@ -26,7 +26,8 @@ export interface WaitForAnimationsOptions {
  *
  * **Close:** patches `{ status: 'ending', transitioning: true }` (keeping
  * `active: true` so the element stays mounted), then after a double-RAF waits
- * for `getAnimations()` to settle before patching `{ active: false, status: 'idle' }`.
+ * for `getAnimations({ subtree: true })` to settle before patching
+ * `{ active: false, status: 'idle' }`.
  */
 export function createTransition(): TransitionApi {
   const state = createState<TransitionState>({ active: false, status: 'idle', transitioning: false });
@@ -131,7 +132,9 @@ export function waitForAnimations(
 ): Promise<void> {
   if (!el) return Promise.resolve();
 
-  const animations = el.getAnimations?.() ?? [];
+  // Include descendant animations so nested menu views (submenus) keep the root
+  // layer in `ending` until their CSS animations finish.
+  const animations = el.getAnimations?.({ subtree: true }) ?? [];
   const transitionTime = includeCSSTransitions ? getMaxCSSTransitionTime(el) : 0;
   const transitionPromise =
     transitionTime > 0

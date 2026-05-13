@@ -93,6 +93,22 @@ describe('createMenu', () => {
       expect(onOpenChange).toHaveBeenCalledWith(false, { reason: 'click' });
     });
 
+    it('clears submenu navigation only after close animation completes', async () => {
+      const onOpenChangeComplete = vi.fn();
+      const { menu } = createTestMenu({ onOpenChangeComplete });
+
+      menu.open();
+      menu.push('sub-id', 'trigger-id');
+      menu.close();
+
+      expect(menu.navigationInput.current.stack).toEqual([{ menuId: 'sub-id', triggerId: 'trigger-id' }]);
+
+      await vi.waitFor(() => expect(onOpenChangeComplete).toHaveBeenCalledWith(false));
+
+      expect(menu.navigationInput.current.stack).toEqual([]);
+      expect(menu.navigationInput.current.direction).toBe('forward');
+    });
+
     it('does not open when already open', () => {
       const { menu, onOpenChange } = createTestMenu();
 

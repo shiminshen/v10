@@ -124,7 +124,7 @@ export function createPopover(options: PopoverOptions): PopoverApi {
    *
    * **Close:** `transition.close(el)` patches `{ status: 'ending', transitioning: true }` (keeping
    * `active: true` so the element stays mounted). After a double-RAF it waits
-   * for `getAnimations()` to settle, then patches `{ active: false, status: 'idle' }`.
+   * for `getAnimations({ subtree: true })` to settle, then patches `{ active: false, status: 'idle' }`.
    *
    * `onOpenChange` fires immediately (before animations).
    * `onOpenChangeComplete` fires after animations finish.

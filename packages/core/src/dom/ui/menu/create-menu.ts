@@ -253,11 +253,15 @@ export function createMenu(options: MenuOptions): MenuApi {
       } else {
         clearHighlight();
         clearTypeahead();
-        // Reset navigation stack so the menu starts at root next time it opens.
-        navigationState.patch({ stack: [], direction: 'forward' });
       }
     },
     onOpenChangeComplete(open) {
+      if (!open) {
+        // Reset after close animations so submenu views stay mounted during `ending`
+        // (outside click and other dismiss paths would otherwise drop the stack
+        // immediately and tear down nested panels with no transition).
+        navigationState.patch({ stack: [], direction: 'forward' });
+      }
       options.onOpenChangeComplete?.(open);
       // Return focus to the trigger after the close animation completes
       // so screen readers hear the correct context.
@@ -393,6 +397,7 @@ export function createMenu(options: MenuOptions): MenuApi {
     cancelAnimationFrame(openRafId);
     openRafId = 0;
     clearTypeahead();
+    navigationState.patch({ stack: [], direction: 'forward' });
     popover.destroy();
   }
 

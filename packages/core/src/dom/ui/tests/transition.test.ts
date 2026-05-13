@@ -94,6 +94,35 @@ describe('createTransition', () => {
       await promise;
       expect(handler.state.current).toEqual({ active: false, status: 'idle', transitioning: false });
     });
+
+    it('waits for descendant animations via getAnimations({ subtree: true })', async () => {
+      const handler = createTransition();
+      const el = document.createElement('div');
+      let resolveAnimation!: () => void;
+      const animation = new Promise<void>((resolve) => {
+        resolveAnimation = resolve;
+      });
+      const pending = { finished: animation } as unknown as Animation;
+
+      el.getAnimations = vi.fn((options?: { subtree?: boolean }) =>
+        options?.subtree ? [pending] : []
+      ) as HTMLElement['getAnimations'];
+
+      handler.open(el);
+      await vi.waitFor(() => {
+        expect(handler.state.current.status).toBe('idle');
+      });
+
+      const closePromise = handler.close(el);
+      expect(handler.state.current.status).toBe('ending');
+      expect(handler.state.current.transitioning).toBe(true);
+      expect(el.getAnimations).toHaveBeenCalledWith({ subtree: true });
+
+      resolveAnimation();
+      await closePromise;
+
+      expect(handler.state.current).toEqual({ active: false, status: 'idle', transitioning: false });
+    });
   });
 
   describe('cancel', () => {
