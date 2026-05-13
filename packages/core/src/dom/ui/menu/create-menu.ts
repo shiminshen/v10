@@ -4,7 +4,7 @@ import { MenuItemDataAttrs } from '../../../core/ui/menu/menu-item-data-attrs';
 import type { UIFocusEvent, UIKeyboardEvent } from '../event';
 import { createPopover, type PopoverChangeDetails, type PopoverOpenChangeReason } from '../popover/popover';
 import type { PositioningOptions } from '../popover/popover-positioning';
-import type { PopupGroup } from '../popover/popup-group';
+import { getSharedMenuPopupGroup, type PopupGroup, wrapPopupGroupOpenClose } from '../popover/popup-group';
 import type { TransitionApi } from '../transition';
 
 export type MenuOpenChangeReason = PopoverOpenChangeReason;
@@ -34,8 +34,16 @@ export interface MenuOptions {
   closeOnOutsideClick: () => boolean;
   /** Called when the highlighted item changes. */
   onHighlightChange?: (element: HTMLElement | null) => void;
-  /** Optional group so opening this menu closes other root menus/popovers in the same group. */
+  /**
+   * Optional popup group from a player or shell provider.
+   * When omitted or the resolver returns `undefined`, root menus use a document-wide group so peer menus cooperate without extra setup.
+   */
   group?: () => PopupGroup | undefined;
+  /**
+   * When false, this menu still registers its trigger for peer pointer handling, but does not call the group's
+   * `open` / `close` (nested menus under a root that already drives the group).
+   */
+  forwardsOpenCloseToPopupGroup?: () => boolean;
 }
 
 export interface MenuTriggerProps {
@@ -287,7 +295,10 @@ export function createMenu(options: MenuOptions): MenuApi {
     },
     closeOnEscape: options.closeOnEscape,
     closeOnOutsideClick: options.closeOnOutsideClick,
-    group: options.group ?? (() => undefined),
+    group: () => {
+      const base = options.group?.() ?? getSharedMenuPopupGroup();
+      return wrapPopupGroupOpenClose(base, options.forwardsOpenCloseToPopupGroup ?? (() => true));
+    },
   });
 
   // --- Content keyboard navigation ---
@@ -341,20 +352,6 @@ export function createMenu(options: MenuOptions): MenuApi {
       }
     },
   };
-
-  function handleTriggerClick(event: UIEvent): void {
-    const { active, status } = popover.input.current;
-
-    // Popover cancels an in-flight close when the trigger is clicked during
-    // `status === 'ending'`. Menus use the same trigger to dismiss; reopening
-    // here leaves the layer half-closed and breaks a subsequent toggle (e.g. Safari).
-    if (active && status === 'ending') {
-      event.preventDefault();
-      return;
-    }
-
-    popover.triggerProps.onClick(event);
-  }
 
   function handleTriggerKeyDown(event: UIKeyboardEvent): void {
     const input = popover.input.current;
@@ -420,10 +417,9 @@ export function createMenu(options: MenuOptions): MenuApi {
   return {
     input: popover.input as State<MenuInput>,
     navigationInput: navigationState,
-    // Menus open/close on trigger click — delegate to popover except during
-    // close animation (see `handleTriggerClick`). Hover/focus open are off.
+    // Menus open/close on trigger click — delegate to popover. Hover/focus open are off.
     triggerProps: {
-      onClick: handleTriggerClick,
+      onClick: popover.triggerProps.onClick,
       onKeyDown: handleTriggerKeyDown,
     },
     contentProps,

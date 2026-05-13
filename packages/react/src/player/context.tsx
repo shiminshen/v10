@@ -20,7 +20,7 @@ export interface PlayerContextValue {
 
 const PlayerContext = createContext<PlayerContextValue | null>(null);
 
-/** Shared {@link PopupGroup} for menus/popovers when not inside {@link PlayerContextProvider}. */
+/** Explicit shell {@link PopupGroup} from {@link PopupGroupProvider}; menus default to a document-wide group when unset. */
 const ShellPopupGroupContext = createContext<PopupGroup | undefined>(undefined);
 
 const EMPTY_UNSUBSCRIBE = () => {};
@@ -39,7 +39,7 @@ export function PlayerContextProvider({
   return <PlayerContext.Provider value={value}>{children}</PlayerContext.Provider>;
 }
 
-/** Supplies a shared {@link PopupGroup} for standalone menus and popovers (outside a player). */
+/** Optional: supplies an explicit shell-scoped {@link PopupGroup} instead of only the document-wide menu group. */
 export function PopupGroupProvider({ children }: { children: ReactNode }): ReactNode {
   const [popupGroup] = useState(() => createPopupGroup());
   return <ShellPopupGroupContext.Provider value={popupGroup}>{children}</ShellPopupGroupContext.Provider>;
@@ -105,7 +105,7 @@ export function useOptionalContainer(): MediaContainer | null {
   return ctx?.container ?? null;
 }
 
-/** Access the interactive popup group from a Player or {@link PopupGroupProvider}. */
+/** Access an explicit popup group from a player or shell provider, if any (menus still coordinate document-wide when this is absent). */
 export function useOptionalPopupGroup(): PopupGroup | undefined {
   const player = useContext(PlayerContext);
   const shell = useContext(ShellPopupGroupContext);

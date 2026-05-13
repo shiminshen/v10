@@ -2,7 +2,7 @@ import '@app/styles.css';
 // React Menu sandbox
 // http://localhost:5173/react-menu/
 
-import { Menu, PopupGroupProvider } from '@videojs/react';
+import { Menu } from '@videojs/react';
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
@@ -309,8 +309,4 @@ function App() {
   );
 }
 
-createRoot(document.getElementById('root')!).render(
-  <PopupGroupProvider>
-    <App />
-  </PopupGroupProvider>
-);
+createRoot(document.getElementById('root')!).render(<App />);

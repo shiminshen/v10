@@ -68,7 +68,12 @@ export function createPopover(options: PopoverOptions): PopoverApi {
   let triggerEl: HTMLElement | null = null;
   let popupEl: HTMLElement | null = null;
   let hoverTimeout: ReturnType<typeof setTimeout> | null = null;
+  let unregisterMemberTrigger: (() => void) | null = null;
   const capturedPointers = new Set<number>();
+  /** Settled when the current close animation finishes (see `applyClose`). */
+  let closeAnimationPromise: Promise<void> | null = null;
+  /** True while a trigger click during `ending` has scheduled `applyOpen` after close settles. */
+  let reopenAfterClosePending = false;
 
   const layer = createDismissLayer({
     transition: options.transition,
@@ -151,6 +156,10 @@ export function createPopover(options: PopoverOptions): PopoverApi {
     const closing = layer.close(popupEl);
     if (!closing) return;
 
+    closeAnimationPromise = closing.finally(() => {
+      closeAnimationPromise = null;
+    });
+
     options.group?.()?.close(groupMember);
 
     const details: PopoverChangeDetails = event ? { reason, event } : { reason };
@@ -185,12 +194,16 @@ export function createPopover(options: PopoverOptions): PopoverApi {
 
     if ((triggerEl && path.includes(triggerEl)) || (popupEl && path.includes(popupEl))) return;
 
+    if (options.group?.()?.pathHasPeerMemberTrigger(path, triggerEl)) return;
+
     applyClose('outside-click', event);
   }
 
   // Cleanup hover timeout on destroy.
   layer.signal.addEventListener('abort', () => {
     options.group?.()?.close(groupMember);
+    unregisterMemberTrigger?.();
+    unregisterMemberTrigger = null;
     clearHoverTimeout();
     capturedPointers.clear();
     triggerEl = null;
@@ -212,10 +225,25 @@ export function createPopover(options: PopoverOptions): PopoverApi {
         return;
       }
 
-      // During the close animation `layer.close()` is a no-op; reopening cancels the close
-      // (see `createDismissLayer.open` when `status === 'ending'`).
+      // During the close animation `layer.close()` is a no-op. Canceling the close via
+      // `transition.cancel()` + immediate `open()` leaves transitions half-applied (Safari)
+      // and conflicts with menu triggers that share this handler. Defer reopen until the
+      // in-flight close settles so rapid double-clicks still toggle reliably.
       if (status === 'ending') {
-        applyOpen('click', event);
+        const pending = closeAnimationPromise;
+        if (!pending || reopenAfterClosePending) return;
+
+        reopenAfterClosePending = true;
+        pending
+          .then(() => {
+            if (layer.signal.aborted) return;
+            if (!state.current.active) {
+              applyOpen('click', event);
+            }
+          })
+          .finally(() => {
+            reopenAfterClosePending = false;
+          });
         return;
       }
 
@@ -330,7 +358,13 @@ export function createPopover(options: PopoverOptions): PopoverApi {
   // --- Element setters ---
 
   function setTriggerElement(el: HTMLElement | null): void {
+    unregisterMemberTrigger?.();
+    unregisterMemberTrigger = null;
     triggerEl = el;
+    const group = options.group?.();
+    if (el && group) {
+      unregisterMemberTrigger = group.addMemberTrigger(el);
+    }
   }
 
   function setPopupElement(el: HTMLElement | null): void {

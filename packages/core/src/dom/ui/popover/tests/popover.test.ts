@@ -192,7 +192,7 @@ describe('createPopover', () => {
       expect(onOpenChange).toHaveBeenCalledWith(false, expect.objectContaining({ reason: 'click' }));
     });
 
-    it('cancels close and starts reopen transition when clicked during close animation', () => {
+    it('defers reopen until close settles when clicked during close animation', async () => {
       const { popover, onOpenChange } = createTestPopover();
       const event = { preventDefault: vi.fn() } as unknown as UIEvent;
 
@@ -204,8 +204,15 @@ describe('createPopover', () => {
 
       expect(event.preventDefault).toHaveBeenCalledTimes(1);
       expect(popover.input.current.active).toBe(true);
-      expect(popover.input.current.status).toBe('starting');
-      expect(onOpenChange).toHaveBeenCalledWith(true, expect.objectContaining({ reason: 'click' }));
+      expect(popover.input.current.status).toBe('ending');
+      expect(onOpenChange).not.toHaveBeenCalled();
+
+      await vi.waitFor(() => {
+        expect(onOpenChange).toHaveBeenCalledWith(true, expect.objectContaining({ reason: 'click' }));
+      });
+
+      expect(popover.input.current.active).toBe(true);
+      expect(popover.input.current.status).not.toBe('ending');
     });
 
     it('does not open on click on touch devices when openOnHover is enabled', () => {
@@ -321,7 +328,7 @@ describe('createPopover', () => {
       popup.remove();
     });
 
-    it('closes on outside pointerdown when targeting another popover trigger, then peer can open', () => {
+    it('closes on peer trigger pointerdown without a shared PopupGroup (lost-click-prone path)', () => {
       const first = createTestPopover();
       const second = createTestPopover();
       const t1 = document.createElement('button');
@@ -347,6 +354,43 @@ describe('createPopover', () => {
       const click = { preventDefault: vi.fn() } as unknown as UIEvent;
       second.popover.triggerProps.onClick(click);
 
+      expect(second.onOpenChange).toHaveBeenCalledWith(true, expect.objectContaining({ reason: 'click' }));
+
+      first.popover.destroy();
+      second.popover.destroy();
+      t1.remove();
+      t2.remove();
+      p1.remove();
+    });
+
+    it('skips outside-dismiss on peer trigger pointerdown when sharing a PopupGroup', () => {
+      const group = createPopupGroup();
+      const first = createTestPopover({ group: () => group });
+      const second = createTestPopover({ group: () => group });
+      const t1 = document.createElement('button');
+      const t2 = document.createElement('button');
+      const p1 = document.createElement('div');
+      document.body.appendChild(t1);
+      document.body.appendChild(t2);
+      document.body.appendChild(p1);
+
+      first.popover.setTriggerElement(t1);
+      first.popover.setPopupElement(p1);
+      second.popover.setTriggerElement(t2);
+
+      first.popover.open();
+      flush();
+      first.onOpenChange.mockClear();
+      second.onOpenChange.mockClear();
+
+      t2.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, composed: true }));
+
+      expect(first.onOpenChange).not.toHaveBeenCalled();
+
+      const click = { preventDefault: vi.fn() } as unknown as UIEvent;
+      second.popover.triggerProps.onClick(click);
+
+      expect(first.onOpenChange).toHaveBeenCalledWith(false, { reason: 'group-open' });
       expect(second.onOpenChange).toHaveBeenCalledWith(true, expect.objectContaining({ reason: 'click' }));
 
       first.popover.destroy();

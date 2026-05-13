@@ -1,5 +1,54 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createPopupGroup } from '../popup-group';
+import { createPopupGroup, getSharedMenuPopupGroup, wrapPopupGroupOpenClose } from '../popup-group';
+
+describe('getSharedMenuPopupGroup', () => {
+  it('returns the same instance across calls', () => {
+    expect(getSharedMenuPopupGroup()).toBe(getSharedMenuPopupGroup());
+  });
+
+  it('is distinct from a freshly created group', () => {
+    expect(getSharedMenuPopupGroup()).not.toBe(createPopupGroup());
+  });
+});
+
+describe('wrapPopupGroupOpenClose', () => {
+  it('forwards open and close only when forwardsOpenClose is true', () => {
+    const inner = createPopupGroup();
+    const openInner = vi.spyOn(inner, 'open');
+    const closeInner = vi.spyOn(inner, 'close');
+    let forwards = true;
+    const wrapped = wrapPopupGroupOpenClose(inner, () => forwards);
+
+    const member = { close: vi.fn() };
+    wrapped.open(member);
+    expect(openInner).toHaveBeenCalledTimes(1);
+
+    forwards = false;
+    openInner.mockClear();
+    wrapped.open(member);
+    expect(openInner).not.toHaveBeenCalled();
+
+    wrapped.close(member);
+    expect(closeInner).not.toHaveBeenCalled();
+
+    forwards = true;
+    wrapped.close(member);
+    expect(closeInner).toHaveBeenCalledTimes(1);
+  });
+
+  it('always forwards addMemberTrigger and pathHasPeerMemberTrigger', () => {
+    const inner = createPopupGroup();
+    const addInner = vi.spyOn(inner, 'addMemberTrigger');
+    const forwards = false;
+    const wrapped = wrapPopupGroupOpenClose(inner, () => forwards);
+    const btn = document.createElement('button');
+
+    wrapped.addMemberTrigger(btn);
+
+    expect(addInner).toHaveBeenCalledWith(btn);
+    expect(wrapped.pathHasPeerMemberTrigger([btn], null)).toBe(true);
+  });
+});
 
 describe('createPopupGroup', () => {
   it('closes the previously open member when another opens', () => {
@@ -44,5 +93,20 @@ describe('createPopupGroup', () => {
 
     expect(closeB).not.toHaveBeenCalled();
     expect(closeA).not.toHaveBeenCalled();
+  });
+
+  it('tracks member triggers for peer detection', () => {
+    const group = createPopupGroup();
+    const a = document.createElement('button');
+    const b = document.createElement('button');
+    group.addMemberTrigger(a);
+    const unregB = group.addMemberTrigger(b);
+
+    expect(group.pathHasPeerMemberTrigger([b], a)).toBe(true);
+    expect(group.pathHasPeerMemberTrigger([b], b)).toBe(false);
+    expect(group.pathHasPeerMemberTrigger([document.body], a)).toBe(false);
+
+    unregB();
+    expect(group.pathHasPeerMemberTrigger([b], a)).toBe(false);
   });
 });

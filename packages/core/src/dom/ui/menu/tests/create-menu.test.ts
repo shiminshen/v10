@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MenuItemDataAttrs } from '../../../../core/ui/menu/menu-item-data-attrs';
 import type { UIFocusEvent, UIKeyboardEvent } from '../../event';
 import { createPopupGroup } from '../../popover/popup-group';
-import { completeMenuItemSelection, getRootPositionOptions, isMenuNavigationKey } from '../create-menu';
+import { createTransition } from '../../transition';
+import { completeMenuItemSelection, createMenu, getRootPositionOptions, isMenuNavigationKey } from '../create-menu';
 import { cleanupElement, createItemElement, createTestMenu } from './create-menu-helpers';
 
 // ---------------------------------------------------------------------------
@@ -128,9 +129,36 @@ describe('createMenu', () => {
       expect(onOpenChange).not.toHaveBeenCalled();
     });
 
-    it('does not auto-close the first menu when another root menu opens without a shared group', () => {
-      const first = createTestMenu();
-      const second = createTestMenu();
+    it('closes the previously open root menu when another opens (document-wide default group)', () => {
+      const onFirst = vi.fn();
+      const onSecond = vi.fn();
+      const first = createMenu({
+        transition: createTransition(),
+        onOpenChange: onFirst,
+        closeOnEscape: () => true,
+        closeOnOutsideClick: () => true,
+      });
+      const second = createMenu({
+        transition: createTransition(),
+        onOpenChange: onSecond,
+        closeOnEscape: () => true,
+        closeOnOutsideClick: () => true,
+      });
+
+      first.open();
+      onFirst.mockClear();
+
+      second.open();
+
+      expect(onFirst).toHaveBeenCalledWith(false, { reason: 'group-open' });
+      expect(onSecond).toHaveBeenCalledWith(true, { reason: 'click' });
+    });
+
+    it('does not auto-close across different explicit PopupGroups', () => {
+      const g1 = createPopupGroup();
+      const g2 = createPopupGroup();
+      const first = createTestMenu({ group: () => g1 });
+      const second = createTestMenu({ group: () => g2 });
 
       first.menu.open();
       first.onOpenChange.mockClear();
@@ -142,7 +170,7 @@ describe('createMenu', () => {
       expect(second.menu.input.current.active).toBe(true);
     });
 
-    it('closes the previously open root menu when another opens with a shared PopupGroup', () => {
+    it('closes the previously open root menu when another opens with the same explicit PopupGroup', () => {
       const group = createPopupGroup();
       const first = createTestMenu({ group: () => group });
       const second = createTestMenu({ group: () => group });
@@ -424,7 +452,7 @@ describe('createMenu', () => {
       expect(onOpenChange).toHaveBeenCalledWith(false, expect.objectContaining({ reason: 'click' }));
     });
 
-    it('keeps closing on click during close animation', () => {
+    it('defers reopen until close settles when trigger is clicked during close animation', async () => {
       const { menu, onOpenChange } = createTestMenu();
       const event = { preventDefault: vi.fn(), stopPropagation: vi.fn() } as unknown as UIEvent;
 
@@ -438,6 +466,13 @@ describe('createMenu', () => {
       expect(menu.input.current.active).toBe(true);
       expect(menu.input.current.status).toBe('ending');
       expect(onOpenChange).not.toHaveBeenCalled();
+
+      await vi.waitFor(() => {
+        expect(onOpenChange).toHaveBeenCalledWith(true, expect.objectContaining({ reason: 'click' }));
+      });
+
+      expect(menu.input.current.active).toBe(true);
+      expect(menu.input.current.status).not.toBe('ending');
     });
 
     it('handles navigation keys while the open trigger has focus', () => {
