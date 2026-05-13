@@ -685,7 +685,7 @@ describe('MenuElement', () => {
     await item.updateComplete;
     onOpenChange.mockClear();
 
-    expect(trigger.getAttribute('command')).toBe('--videojs-menu-trigger');
+    expect(trigger.getAttribute('command')).toBe('--media-menu-root-trigger');
 
     trigger.click();
 

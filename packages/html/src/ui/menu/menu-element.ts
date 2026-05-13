@@ -34,6 +34,8 @@ import { MediaElement } from '../media-element';
 import { PositionController } from '../position-controller';
 import { type MenuContextValue, menuContext } from './context';
 
+const MENU_ROOT_INVOKER_COMMAND = '--media-menu-root-trigger';
+
 export class MenuElement extends MediaElement {
   static readonly tagName: string = 'media-menu';
 
@@ -342,7 +344,7 @@ export class MenuElement extends MediaElement {
       if (triggerElement.localName === 'button' && !triggerElement.hasAttribute('command')) {
         // Keep `commandfor` available for trigger discovery without letting
         // native invoker commands toggle the Popover API behind our state.
-        triggerElement.setAttribute('command', '--videojs-menu-trigger');
+        triggerElement.setAttribute('command', MENU_ROOT_INVOKER_COMMAND);
         this.#triggerCommandSet = true;
       }
 
