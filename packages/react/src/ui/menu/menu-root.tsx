@@ -65,6 +65,7 @@ export function MenuRoot({
   const closeOnOutsideClickRef = useLatestRef(closeOnOutsideClick);
   const popupGroupRef = useLatestRef(popupGroup);
   const isSubmenuRef = useLatestRef(isSubmenu);
+  const parentMenuApiRef = useLatestRef(parentMenu?.menu ?? null);
 
   const [menu] = useState(() => {
     const instance = createMenu({
@@ -85,7 +86,7 @@ export function MenuRoot({
       closeOnEscape: () => closeOnEscapeRef.current ?? MenuCore.defaultProps.closeOnEscape,
       closeOnOutsideClick: () => closeOnOutsideClickRef.current ?? MenuCore.defaultProps.closeOnOutsideClick,
       group: () => popupGroupRef.current,
-      forwardsOpenCloseToPopupGroup: () => !isSubmenuRef.current,
+      parentMenu: () => parentMenuApiRef.current,
     });
 
     if (!isControlled && defaultOpen) {

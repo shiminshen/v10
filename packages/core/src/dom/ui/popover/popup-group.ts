@@ -24,29 +24,6 @@ export function getSharedMenuPopupGroup(): PopupGroup {
   return sharedMenuPopupGroup;
 }
 
-/**
- * Wraps a popup group so `open` / `close` run only when `forwardsOpenClose()` is true.
- * Trigger registration and peer detection always delegate to the inner group (submenus register triggers but do not call `open`/`close`).
- */
-export function wrapPopupGroupOpenClose(group: PopupGroup, forwardsOpenClose: () => boolean): PopupGroup {
-  return {
-    open(member) {
-      if (!forwardsOpenClose()) return;
-      group.open(member);
-    },
-    close(member) {
-      if (!forwardsOpenClose()) return;
-      group.close(member);
-    },
-    addMemberTrigger(element) {
-      return group.addMemberTrigger(element);
-    },
-    pathHasPeerMemberTrigger(path, ownTrigger) {
-      return group.pathHasPeerMemberTrigger(path, ownTrigger);
-    },
-  };
-}
-
 export function createPopupGroup(): PopupGroup {
   let current: PopupGroupMember | null = null;
   const memberTriggers = new Set<HTMLElement>();

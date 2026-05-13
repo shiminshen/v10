@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createPopupGroup, getSharedMenuPopupGroup, wrapPopupGroupOpenClose } from '../popup-group';
+import { createPopupGroup, getSharedMenuPopupGroup } from '../popup-group';
 
 describe('getSharedMenuPopupGroup', () => {
   it('returns the same instance across calls', () => {
@@ -8,45 +8,6 @@ describe('getSharedMenuPopupGroup', () => {
 
   it('is distinct from a freshly created group', () => {
     expect(getSharedMenuPopupGroup()).not.toBe(createPopupGroup());
-  });
-});
-
-describe('wrapPopupGroupOpenClose', () => {
-  it('forwards open and close only when forwardsOpenClose is true', () => {
-    const inner = createPopupGroup();
-    const openInner = vi.spyOn(inner, 'open');
-    const closeInner = vi.spyOn(inner, 'close');
-    let forwards = true;
-    const wrapped = wrapPopupGroupOpenClose(inner, () => forwards);
-
-    const member = { close: vi.fn() };
-    wrapped.open(member);
-    expect(openInner).toHaveBeenCalledTimes(1);
-
-    forwards = false;
-    openInner.mockClear();
-    wrapped.open(member);
-    expect(openInner).not.toHaveBeenCalled();
-
-    wrapped.close(member);
-    expect(closeInner).not.toHaveBeenCalled();
-
-    forwards = true;
-    wrapped.close(member);
-    expect(closeInner).toHaveBeenCalledTimes(1);
-  });
-
-  it('always forwards addMemberTrigger and pathHasPeerMemberTrigger', () => {
-    const inner = createPopupGroup();
-    const addInner = vi.spyOn(inner, 'addMemberTrigger');
-    const forwards = false;
-    const wrapped = wrapPopupGroupOpenClose(inner, () => forwards);
-    const btn = document.createElement('button');
-
-    wrapped.addMemberTrigger(btn);
-
-    expect(addInner).toHaveBeenCalledWith(btn);
-    expect(wrapped.pathHasPeerMemberTrigger([btn], null)).toBe(true);
   });
 });
 

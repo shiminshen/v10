@@ -4,7 +4,7 @@ import { MenuItemDataAttrs } from '../../../core/ui/menu/menu-item-data-attrs';
 import type { UIFocusEvent, UIKeyboardEvent } from '../event';
 import { createPopover, type PopoverChangeDetails, type PopoverOpenChangeReason } from '../popover/popover';
 import type { PositioningOptions } from '../popover/popover-positioning';
-import { getSharedMenuPopupGroup, type PopupGroup, wrapPopupGroupOpenClose } from '../popover/popup-group';
+import { getSharedMenuPopupGroup, type PopupGroup } from '../popover/popup-group';
 import type { TransitionApi } from '../transition';
 
 export type MenuOpenChangeReason = PopoverOpenChangeReason;
@@ -40,10 +40,11 @@ export interface MenuOptions {
    */
   group?: () => PopupGroup | undefined;
   /**
-   * When false, this menu still registers its trigger for peer pointer handling, but does not call the group's
-   * `open` / `close` (nested menus under a root that already drives the group).
+   * When this returns an ancestor {@link MenuApi}, this menu is nested under that surface: triggers still
+   * join the peer list for outside-dismiss, but open/close are not forwarded to the popup group (the parent
+   * root coordinates one-open-at-a-time). Omit or return null for a root menu.
    */
-  forwardsOpenCloseToPopupGroup?: () => boolean;
+  parentMenu?: () => MenuApi | null | undefined;
 }
 
 export interface MenuTriggerProps {
@@ -121,6 +122,26 @@ export function completeMenuItemSelection(menu: MenuApi, parentMenu: MenuApi | n
   } else {
     menu.close();
   }
+}
+
+/** Submenus register peer triggers but must not replace the root as the group's `current` member. */
+function bindMenuPopupGroup(group: PopupGroup, hasParentMenu: () => boolean): PopupGroup {
+  return {
+    open(member) {
+      if (hasParentMenu()) return;
+      group.open(member);
+    },
+    close(member) {
+      if (hasParentMenu()) return;
+      group.close(member);
+    },
+    addMemberTrigger(element) {
+      return group.addMemberTrigger(element);
+    },
+    pathHasPeerMemberTrigger(path, ownTrigger) {
+      return group.pathHasPeerMemberTrigger(path, ownTrigger);
+    },
+  };
 }
 
 export function createMenu(options: MenuOptions): MenuApi {
@@ -247,7 +268,7 @@ export function createMenu(options: MenuOptions): MenuApi {
     if (match) highlight(match);
   }
 
-  // --- Internal popover ---
+  // --- Internal popover (see `bindMenuPopupGroup` for nested vs root group behavior) ---
 
   const popover = createPopover({
     transition: options.transition,
@@ -295,10 +316,8 @@ export function createMenu(options: MenuOptions): MenuApi {
     },
     closeOnEscape: options.closeOnEscape,
     closeOnOutsideClick: options.closeOnOutsideClick,
-    group: () => {
-      const base = options.group?.() ?? getSharedMenuPopupGroup();
-      return wrapPopupGroupOpenClose(base, options.forwardsOpenCloseToPopupGroup ?? (() => true));
-    },
+    group: () =>
+      bindMenuPopupGroup(options.group?.() ?? getSharedMenuPopupGroup(), () => options.parentMenu?.() != null),
   });
 
   // --- Content keyboard navigation ---

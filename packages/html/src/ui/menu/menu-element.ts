@@ -106,7 +106,7 @@ export class MenuElement extends MediaElement {
       closeOnEscape: () => this.closeOnEscape,
       closeOnOutsideClick: () => this.closeOnOutsideClick,
       group: () => this.#containerCtx.value?.popupGroup,
-      forwardsOpenCloseToPopupGroup: () => !this.#parentCtx.value,
+      parentMenu: () => this.#parentCtx.value?.menu ?? null,
     });
 
     // The element itself is the content (popup) for root menus.
