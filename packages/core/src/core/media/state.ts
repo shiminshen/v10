@@ -59,6 +59,11 @@ export interface MediaVolumeState {
    */
   volumeAvailability: MediaFeatureAvailability;
   /**
+   * The last non-zero volume seen, used by {@link toggleMuted} to restore volume
+   * when unmuting at zero. Stays `0` until a non-zero volume is observed.
+   */
+  lastVolume: number;
+  /**
    * Set volume (clamped 0-1). Returns the clamped value.
    *
    * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/volume

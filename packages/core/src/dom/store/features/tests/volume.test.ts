@@ -44,6 +44,46 @@ describe('volumeFeature', () => {
       expect(store.state.volume).toBe(0.5);
       expect(store.state.muted).toBe(true);
     });
+
+    it('captures lastVolume from initial non-zero media volume on attach', () => {
+      const video = createMockVideo({ volume: 0.7 });
+      const store = createStore<PlayerTarget>()(volumeFeature);
+      store.attach({ media: video, container: null });
+
+      expect(store.state.lastVolume).toBe(0.7);
+    });
+
+    it('leaves lastVolume at 0 when media starts muted at volume 0', () => {
+      const video = createMockVideo({ volume: 0 });
+      const store = createStore<PlayerTarget>()(volumeFeature);
+      store.attach({ media: video, container: null });
+
+      expect(store.state.lastVolume).toBe(0);
+    });
+
+    it('updates lastVolume on volumechange when volume > 0', () => {
+      const video = createMockVideo({ volume: 1 });
+      const store = createStore<PlayerTarget>()(volumeFeature);
+      store.attach({ media: video, container: null });
+
+      video.volume = 0.6;
+      video.dispatchEvent(new Event('volumechange'));
+
+      expect(store.state.lastVolume).toBe(0.6);
+    });
+
+    it('does not update lastVolume when volume drops to 0', () => {
+      const video = createMockVideo({ volume: 0.8 });
+      const store = createStore<PlayerTarget>()(volumeFeature);
+      store.attach({ media: video, container: null });
+
+      expect(store.state.lastVolume).toBe(0.8);
+
+      video.volume = 0;
+      video.dispatchEvent(new Event('volumechange'));
+
+      expect(store.state.lastVolume).toBe(0.8);
+    });
   });
 
   describe('actions', () => {
@@ -159,6 +199,21 @@ describe('volumeFeature', () => {
         expect(video.muted).toBe(false);
         expect(video.volume).toBe(0.25);
         expect(result).toBe(false);
+      });
+
+      it('restores last non-zero volume when unmuting at volume 0', async () => {
+        const video = createMockVideo({ muted: false, volume: 0.7 });
+        const store = createStore<PlayerTarget>()(volumeFeature);
+        store.attach({ media: video, container: null });
+
+        // User drags volume to 0.
+        video.volume = 0;
+        video.dispatchEvent(new Event('volumechange'));
+
+        await store.toggleMuted();
+
+        expect(video.muted).toBe(false);
+        expect(video.volume).toBe(0.7);
       });
     });
   });

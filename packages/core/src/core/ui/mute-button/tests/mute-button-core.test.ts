@@ -9,6 +9,7 @@ function createMediaState(overrides: Partial<MediaVolumeState> = {}): MediaVolum
     volume: 1,
     muted: false,
     volumeAvailability: 'available',
+    lastVolume: 0,
     setVolume: vi.fn((v: number) => v),
     toggleMuted: vi.fn(() => false),
     ...overrides,

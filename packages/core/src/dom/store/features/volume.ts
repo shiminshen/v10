@@ -4,15 +4,16 @@ import type { MediaFeatureAvailability } from '../../../core/media/types';
 import { definePlayerFeature } from '../../feature';
 import { isMediaVolumeCapable } from '../../media/predicate';
 
-/** Volume to restore when unmuting at zero. */
+/** Volume to restore when unmuting at zero with no prior non-zero volume. */
 const UNMUTE_VOLUME = 0.25;
 
 export const volumeFeature = definePlayerFeature({
   name: 'volume',
-  state: ({ target }): MediaVolumeState => ({
+  state: ({ target, get }): MediaVolumeState => ({
     volume: 1,
     muted: false,
     volumeAvailability: 'unavailable',
+    lastVolume: 0,
 
     setVolume(volume: number) {
       const { media } = target();
@@ -34,7 +35,10 @@ export const volumeFeature = definePlayerFeature({
 
       if (effectivelyMuted) {
         media.muted = false;
-        if (media.volume === 0) media.volume = UNMUTE_VOLUME;
+        if (media.volume === 0) {
+          const lastVolume = get().lastVolume as number;
+          media.volume = lastVolume > 0 ? lastVolume : UNMUTE_VOLUME;
+        }
       } else {
         media.muted = true;
       }
@@ -50,7 +54,11 @@ export const volumeFeature = definePlayerFeature({
 
     set({ volumeAvailability: canSetVolume() });
 
-    const sync = () => set({ volume: media.volume, muted: media.muted });
+    const sync = () => {
+      const next: Partial<MediaVolumeState> = { volume: media.volume, muted: media.muted };
+      if (media.volume > 0) next.lastVolume = media.volume;
+      set(next);
+    };
     sync();
 
     listen(media, 'volumechange', sync, { signal });
